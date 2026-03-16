@@ -1,5 +1,3 @@
-import CardWave from "../reactive-svg/card-wave";
-
 export const LinearCard = ({
   children,
   isLast = false,
