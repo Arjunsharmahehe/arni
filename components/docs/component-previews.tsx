@@ -1,3 +1,4 @@
+import { DiffViewerPreview } from "@/components/examples/diff-viewer-preview";
 import { LinearCardPreview } from "@/components/examples/linear-card-preview";
 
 // ---------------------------------------------------------------------------
@@ -5,6 +6,7 @@ import { LinearCardPreview } from "@/components/examples/linear-card-preview";
 // ---------------------------------------------------------------------------
 
 const previews: Record<string, React.ComponentType> = {
+  "diff-viewer": DiffViewerPreview,
   "linear-card": LinearCardPreview,
 };
 

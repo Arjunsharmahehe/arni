@@ -1,10 +1,12 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { notFound } from "next/navigation";
 import { codeToHtml } from "shiki";
-import { getComponent } from "@/lib/component-registry";
+import { CodeTabs } from "@/components/docs/code-tabs";
 import { ComponentPreview } from "@/components/docs/component-preview";
 import { ComponentPreviewRenderer } from "@/components/docs/component-previews";
-import { CodeTabs } from "@/components/docs/code-tabs";
 import { PropsTable, SubComponentsTable } from "@/components/docs/props-table";
+import { getComponent } from "@/lib/component-registry";
 
 export default async function ComponentPage({
   params,
@@ -18,13 +20,21 @@ export default async function ComponentPage({
     notFound();
   }
 
+  const sourceCode = component.sourcePath
+    ? await readFile(path.join(process.cwd(), component.sourcePath), "utf8")
+    : component.code;
+
+  if (!sourceCode) {
+    notFound();
+  }
+
   // Pre-highlight code on the server
   const [usageHtml, sourceHtml] = await Promise.all([
     codeToHtml(component.usage.trim(), {
       lang: "tsx",
       theme: "github-dark-dimmed",
     }),
-    codeToHtml(component.code.trim(), {
+    codeToHtml(sourceCode.trim(), {
       lang: "tsx",
       theme: "github-dark-dimmed",
     }),
@@ -39,8 +49,8 @@ export default async function ComponentPage({
     },
     {
       label: "Source",
-      title: `components/ui/${slug}.tsx`,
-      code: component.code,
+      title: component.sourcePath ?? `components/ui/${slug}.tsx`,
+      code: sourceCode,
       highlightedHtml: sourceHtml,
     },
   ];

@@ -19,8 +19,10 @@ export type ComponentMeta = {
   slug: string;
   name: string;
   description: string;
-  /** Raw source of the component file */
-  code: string;
+  /** Relative file path used for the Source tab when available. */
+  sourcePath?: string;
+  /** Raw source fallback when sourcePath is not provided. */
+  code?: string;
   /** Copyable usage snippet */
   usage: string;
   /** Props for root component */
@@ -28,63 +30,6 @@ export type ComponentMeta = {
   /** Compound sub-components */
   subComponents?: SubComponent[];
 };
-
-// ---------------------------------------------------------------------------
-// Linear Card — Source
-// ---------------------------------------------------------------------------
-
-const linearCardSource = `export const LinearCard = ({
-  children,
-  isLast = false,
-}: {
-  children: React.ReactNode;
-  isLast?: boolean;
-}) => {
-  return (
-    <div
-      className={\`
-        flex flex-col items-center gap-12 w-96 px-8 py-6
-        border border-neutral-900 rounded-md
-        md:border-t-0 md:border-b-0 md:border-l-0 md:rounded-none md:py-0
-        \${isLast ? "md:border-r-0" : "md:border-r md:border-neutral-900"}
-      \`}
-    >
-      {children}
-    </div>
-  );
-};
-
-export const LinearCardHeading = ({ children }: { children: React.ReactNode }) => {
-  return <h3 className="font-medium">{children}</h3>;
-};
-
-export const LinearCardSubheading = ({ children }: { children: React.ReactNode }) => {
-  return <p className="text-neutral-500 text-balance">{children}</p>;
-};
-
-export const LinearCardBody = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="flex flex-col text-neutral-50 text-[12px] gap-2">
-      {children}
-    </div>
-  );
-};
-
-export const LinearCardHeader = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <p className="hidden md:block text-neutral-600 text-[8px] font-mono w-full">
-      {children}
-    </p>
-  );
-};
-
-export const LinearCardSVGContainer = ({ children }: { children: React.ReactNode }) => {
-  return <div className="overflow-hidden w-72 h-56">{children}</div>;
-};
-
-export const LinearCardImageContainer = ({ children }: { children: React.ReactNode }) => {
-  return <div className="overflow-hidden w-72 h-56 relative">{children}</div>;
-};`;
 
 // ---------------------------------------------------------------------------
 // Linear Card — Usage
@@ -136,6 +81,50 @@ import Image from "next/image";
 </LinearCard>`;
 
 // ---------------------------------------------------------------------------
+// Diff Viewer — Usage
+// ---------------------------------------------------------------------------
+
+const diffViewerUsage = `import {
+  DiffLine,
+  DiffMark,
+  DiffPanel,
+  DiffViewer,
+} from "@/components/ui/diff-viewer";
+
+const highlightRules = [
+  {
+    name: "keyword",
+    pattern: /\\b(?:import|from|export|function|const|return)\\b/,
+    style: { color: "#38bdf8" },
+  },
+  {
+    name: "string",
+    pattern: /"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'/,
+    style: { color: "#fbbf24" },
+  },
+];
+
+<DiffViewer filename="app/home-screen.tsx" highlightRules={highlightRules}>
+  <DiffPanel side="before">
+    <DiffLine type="del" number={1}>
+      import { <DiffMark className="text-red-200">useVehicleState</DiffMark> } from "@/hooks/useVehicleState";
+    </DiffLine>
+    <DiffLine type="del" number={2}>
+      const { <DiffMark className="text-red-200">selectedVehicle</DiffMark> } = <DiffMark className="text-red-200">useVehicleState</DiffMark>();
+    </DiffLine>
+  </DiffPanel>
+
+  <DiffPanel side="after">
+    <DiffLine type="add" number={1}>
+      import { <DiffMark className="text-emerald-200">useVehicleStates</DiffMark> } from "@/hooks/useVehicleStates";
+    </DiffLine>
+    <DiffLine type="add" number={2}>
+      const { <DiffMark className="text-emerald-200">activeVehicle</DiffMark> } = <DiffMark className="text-emerald-200">useVehicleStates</DiffMark>();
+    </DiffLine>
+  </DiffPanel>
+</DiffViewer>`;
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -145,7 +134,7 @@ export const componentRegistry: ComponentMeta[] = [
     name: "Linear Card",
     description:
       "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
-    code: linearCardSource,
+    sourcePath: "components/ui/linear-card.tsx",
     usage: linearCardUsage,
     props: [
       {
@@ -234,8 +223,141 @@ export const componentRegistry: ComponentMeta[] = [
       },
     ],
   },
+  {
+    slug: "diff-viewer",
+    name: "Diff Viewer",
+    description:
+      "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
+    sourcePath: "components/ui/diff-viewer.tsx",
+    usage: diffViewerUsage,
+    props: [
+      {
+        name: "children",
+        type: "React.ReactNode",
+        description:
+          "Compose with DiffPanel children to define the before and after panes",
+      },
+      {
+        name: "filename",
+        type: "string",
+        description:
+          "Optional file label rendered in the header, like a code block title",
+      },
+      {
+        name: "highlightRules",
+        type: "DiffHighlightRule[]",
+        default: "DEFAULT_DIFF_HIGHLIGHT_RULES",
+        description:
+          "Tokenizer rules used to automatically syntax-highlight text children inside DiffLine",
+      },
+      {
+        name: "panes",
+        type: "1 | 2",
+        default: "2",
+        description:
+          "The number of panes your diff will have. Useful when creating inline diff-view",
+      },
+      {
+        name: "className",
+        type: "string",
+        description:
+          "Custom classes applied to the outer diff viewer container",
+      },
+    ],
+    subComponents: [
+      {
+        name: "DiffPanel",
+        description:
+          "One side of the diff. On mobile the panels stack vertically; from md upwards they render side by side.",
+        props: [
+          {
+            name: "children",
+            type: "React.ReactNode",
+            description: "Diff lines for a single side of the comparison",
+          },
+          {
+            name: "side",
+            type: '"before" | "after"',
+            description:
+              "Logical panel side used for composition and semantics",
+          },
+          {
+            name: "className",
+            type: "string",
+            description: "Custom classes for the panel wrapper",
+          },
+        ],
+      },
+      {
+        name: "DiffLine",
+        description:
+          "A single diff row. Automatically highlights text children and provides add/del state to nested DiffMark elements.",
+        props: [
+          {
+            name: "children",
+            type: "React.ReactNode",
+            description:
+              "Line content. Plain text is tokenized automatically; nested DiffMark stays precise.",
+          },
+          {
+            name: "type",
+            type: '"add" | "del" | "context"',
+            default: '"context"',
+            description:
+              "Controls line chrome, sign, and inherited mark styling",
+          },
+          {
+            name: "number",
+            type: "number",
+            description: "Optional line number displayed in the gutter",
+          },
+          {
+            name: "highlightRules",
+            type: "DiffHighlightRule[]",
+            description:
+              "Optional per-line override for syntax highlighting rules",
+          },
+          {
+            name: "disableHighlighting",
+            type: "boolean",
+            default: "false",
+            description: "Disables automatic syntax highlighting for that line",
+          },
+          {
+            name: "className",
+            type: "string",
+            description: "Custom classes for the line wrapper",
+          },
+        ],
+      },
+      {
+        name: "DiffMark",
+        description:
+          "Inline changed fragment. Inherits add/del state from the parent DiffLine and lets you color the inner text directly with className.",
+        props: [
+          {
+            name: "children",
+            type: "React.ReactNode",
+            description:
+              "The exact changed text or nested content to emphasize",
+          },
+          {
+            name: "className",
+            type: "string",
+            description:
+              "Classes applied to the inner text inside the highlighted mark",
+          },
+          {
+            name: "markClassName",
+            type: "string",
+            description: "Optional classes for the outer highlighted wrapper",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getComponent(slug: string): ComponentMeta | undefined {
-  return componentRegistry.find((c) => c.slug === slug);
+  return componentRegistry.find((component) => component.slug === slug);
 }
