@@ -1,341 +1,165 @@
-import {
-  DiffLine,
-  DiffMark,
-  DiffPanel,
-  DiffViewer,
-} from "@/components/ui/diff-viewer";
+"use client";
+
+import { useMemo, useState } from "react";
+import { HeroBackground } from "@/components/background/hero-background";
+
+type ControlSliderProps = {
+  label: string;
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  onChange: (value: number) => void;
+};
+
+function ControlSlider({
+  label,
+  min,
+  max,
+  step = 1,
+  value,
+  onChange,
+}: ControlSliderProps) {
+  return (
+    <label className="space-y-2">
+      <div className="flex items-center justify-between gap-4 text-sm">
+        <span className="text-white/72">{label}</span>
+        <span className="font-mono text-white/48">{value}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-sky-400"
+      />
+    </label>
+  );
+}
 
 export default function TestingPage() {
+  const [glowColor, setGlowColor] = useState("#38bdf8");
+  const [glowOpacity, setGlowOpacity] = useState(72);
+  const [starOpacity, setStarOpacity] = useState(8);
+  const [starSize, setStarSize] = useState(22);
+  const [motionSpeed, setMotionSpeed] = useState(100);
+  const [animated, setAnimated] = useState(true);
+
+  const codeSample = useMemo(
+    () => `<HeroBackground
+  glowColor="${glowColor}"
+  glowOpacity={${(glowOpacity / 100).toFixed(2)}}
+  starOpacity={${(starOpacity / 100).toFixed(2)}}
+  starSize={${starSize}}
+  motionSpeed={${(motionSpeed / 100).toFixed(2)}}
+  animated={${animated}}
+/>`,
+    [animated, glowColor, glowOpacity, motionSpeed, starOpacity, starSize],
+  );
+
   return (
-    <div className="flex flex-col gap-24 min-h-screen items-center justify-center bg-black p-6 md:p-10">
-      <div className="w-full max-w-6xl">
-        <p className="mb-2">Base diff component</p>
-        <DiffViewer filename="app/home-screen.tsx">
-          <DiffPanel side="before">
-            <DiffLine type="del" number={1}>
-              {"import { "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {' } from "@/hooks/useVehicleState";'}
-            </DiffLine>
-            <DiffLine type="del" number={2}>
-              {'import { Dashboard } from "@/components/dashboard";'}
-            </DiffLine>
-            <DiffLine type="context" number={3}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={4}>
-              export function HomeScreen() {"{"}
-            </DiffLine>
-            <DiffLine type="del" number={5}>
-              {"  const { "}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {" } = "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="context" number={6}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={7}>
-              {"  return ("}
-            </DiffLine>
-            <DiffLine type="del" number={8}>
-              {"    <"}
-              <DiffMark className="text-red-200">Dashboard</DiffMark>
-            </DiffLine>
-            <DiffLine type="del" number={9}>
-              {"      vehicle={"}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={10}>
-              {"      onRefresh={"}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={11}>
-              {"      variant="}
-              <DiffMark className="text-red-200">"default"</DiffMark>
-            </DiffLine>
-            <DiffLine type="del" number={12}>
-              {"    />"}
-            </DiffLine>
-            <DiffLine type="context" number={13}>
-              {"  );"}
-            </DiffLine>
-            <DiffLine type="context" number={14}>
-              {"}"}
-            </DiffLine>
-          </DiffPanel>
+    <main className="min-h-screen bg-[#020308] p-4 text-white sm:p-6 lg:p-8">
+      <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="relative isolate min-h-[72svh] overflow-hidden rounded-[2rem] border border-white/10 bg-[#020308] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_100px_rgba(0,0,0,0.45)]">
+          <HeroBackground
+            glowColor={glowColor}
+            glowOpacity={glowOpacity / 100}
+            starOpacity={starOpacity / 100}
+            starSize={starSize}
+            motionSpeed={motionSpeed / 100}
+            animated={animated}
+          />
 
-          <DiffPanel side="after">
-            <DiffLine type="add" number={1}>
-              {"import { "}
-              <DiffMark className="text-emerald-200">useVehicleStates</DiffMark>
-              {' } from "@/hooks/useVehicleStates";'}
-            </DiffLine>
-            <DiffLine type="add" number={2}>
-              {"import { "}
-              <DiffMark className="text-emerald-200">DashboardShell</DiffMark>
-              {' } from "@/components/dashboard-shell";'}
-            </DiffLine>
-            <DiffLine type="context" number={3}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={4}>
-              export function HomeScreen() {"{"}
-            </DiffLine>
-            <DiffLine type="add" number={5}>
-              {"  const { "}
-              <DiffMark className="text-emerald-200">activeVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-emerald-200">refreshVehicles</DiffMark>
-              {" } = "}
-              <DiffMark className="text-emerald-200">useVehicleStates</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="context" number={6}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={7}>
-              {"  return ("}
-            </DiffLine>
-            <DiffLine type="add" number={8}>
-              {"    <"}
-              <DiffMark className="text-emerald-200">DashboardShell</DiffMark>
-            </DiffLine>
-            <DiffLine type="add" number={9}>
-              {"      vehicle={"}
-              <DiffMark className="text-emerald-200">activeVehicle</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="add" number={10}>
-              {"      onRefresh={"}
-              <DiffMark className="text-emerald-200">refreshVehicles</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="add" number={11}>
-              {"      variant="}
-              <DiffMark className="text-emerald-200">"focused"</DiffMark>
-            </DiffLine>
-            <DiffLine type="add" number={12}>
-              {"    />"}
-            </DiffLine>
-            <DiffLine type="context" number={13}>
-              {"  );"}
-            </DiffLine>
-            <DiffLine type="context" number={14}>
-              {"}"}
-            </DiffLine>
-          </DiffPanel>
-        </DiffViewer>
+          <div className="relative z-10 flex min-h-[72svh] flex-col justify-between p-6 sm:p-8 lg:p-12">
+            <div className="max-w-xl space-y-4">
+              <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/48">
+                Background playground
+              </p>
+              <h1 className="text-balance text-4xl font-semibold tracking-[-0.06em] text-white sm:text-6xl">
+                Tune the glow and star field live.
+              </h1>
+              <p className="max-w-lg text-sm leading-7 text-slate-300 sm:text-base">
+                This page now isolates the background itself so you can judge
+                the ambient glow, dot pattern, and motion without a hero arc
+                getting in the way.
+              </p>
+            </div>
+
+            <div className="max-w-xl rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-md">
+              <p className="mb-3 text-xs font-medium uppercase tracking-[0.28em] text-white/40">
+                Current config
+              </p>
+              <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-xs leading-6 text-sky-100/88">
+                {codeSample}
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        <aside className="rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-md sm:p-6">
+          <div className="mb-6 space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/40">
+              Control panel
+            </p>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">
+              Shape the background live
+            </h2>
+          </div>
+
+          <div className="space-y-5">
+            <label className="space-y-2">
+              <span className="block text-sm text-white/72">Glow color</span>
+              <input
+                type="color"
+                value={glowColor}
+                onChange={(event) => setGlowColor(event.target.value)}
+                className="h-11 w-full cursor-pointer rounded-xl border border-white/10 bg-transparent"
+              />
+            </label>
+
+            <ControlSlider
+              label="Glow opacity"
+              min={0}
+              max={100}
+              value={glowOpacity}
+              onChange={setGlowOpacity}
+            />
+            <ControlSlider
+              label="Star opacity"
+              min={0}
+              max={20}
+              value={starOpacity}
+              onChange={setStarOpacity}
+            />
+            <ControlSlider
+              label="Star size"
+              min={10}
+              max={40}
+              value={starSize}
+              onChange={setStarSize}
+            />
+            <ControlSlider
+              label="Motion speed"
+              min={20}
+              max={220}
+              value={motionSpeed}
+              onChange={setMotionSpeed}
+            />
+
+            <label className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/72">
+              <span>Animated glow</span>
+              <input
+                type="checkbox"
+                checked={animated}
+                onChange={(event) => setAnimated(event.target.checked)}
+                className="h-4 w-4 rounded border-white/20 bg-transparent accent-sky-400"
+              />
+            </label>
+          </div>
+        </aside>
       </div>
-
-      <div className="w-full max-w-6xl border border-border p-1 rounded-xl relative">
-        <p className="mb-2 absolute -top-8">Background blended diff</p>
-        <div className="w-full absolute -bottom-1 -left-1 -right-1 h-60 bg-linear-0 from-black to-transparent" />
-        <DiffViewer filename="app/home-screen.tsx">
-          <DiffPanel side="before">
-            <DiffLine type="del" number={1}>
-              {"import { "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {' } from "@/hooks/useVehicleState";'}
-            </DiffLine>
-            <DiffLine type="del" number={2}>
-              {'import { Dashboard } from "@/components/dashboard";'}
-            </DiffLine>
-            <DiffLine type="context" number={3}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={4}>
-              export function HomeScreen() {"{"}
-            </DiffLine>
-            <DiffLine type="del" number={5}>
-              {"  const { "}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {" } = "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="context" number={6}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={7}>
-              {"  return ("}
-            </DiffLine>
-            <DiffLine type="del" number={8}>
-              {"    <"}
-              <DiffMark className="text-red-200">Dashboard</DiffMark>
-            </DiffLine>
-            <DiffLine type="del" number={9}>
-              {"      vehicle={"}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={10}>
-              {"      onRefresh={"}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={11}>
-              {"      variant="}
-              <DiffMark className="text-red-200">"default"</DiffMark>
-            </DiffLine>
-            <DiffLine type="del" number={12}>
-              {"    />"}
-            </DiffLine>
-            <DiffLine type="context" number={13}>
-              {"  );"}
-            </DiffLine>
-            <DiffLine type="context" number={14}>
-              {"}"}
-            </DiffLine>
-          </DiffPanel>
-
-          <DiffPanel side="after">
-            <DiffLine type="add" number={1}>
-              {"import { "}
-              <DiffMark className="text-emerald-200">useVehicleStates</DiffMark>
-              {' } from "@/hooks/useVehicleStates";'}
-            </DiffLine>
-            <DiffLine type="add" number={2}>
-              {"import { "}
-              <DiffMark className="text-emerald-200">DashboardShell</DiffMark>
-              {' } from "@/components/dashboard-shell";'}
-            </DiffLine>
-            <DiffLine type="context" number={3}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={4}>
-              export function HomeScreen() {"{"}
-            </DiffLine>
-            <DiffLine type="add" number={5}>
-              {"  const { "}
-              <DiffMark className="text-emerald-200">activeVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-emerald-200">refreshVehicles</DiffMark>
-              {" } = "}
-              <DiffMark className="text-emerald-200">useVehicleStates</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="context" number={6}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={7}>
-              {"  return ("}
-            </DiffLine>
-            <DiffLine type="add" number={8}>
-              {"    <"}
-              <DiffMark className="text-emerald-200">DashboardShell</DiffMark>
-            </DiffLine>
-            <DiffLine type="add" number={9}>
-              {"      vehicle={"}
-              <DiffMark className="text-emerald-200">activeVehicle</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="add" number={10}>
-              {"      onRefresh={"}
-              <DiffMark className="text-emerald-200">refreshVehicles</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="add" number={11}>
-              {"      variant="}
-              <DiffMark className="text-emerald-200">"focused"</DiffMark>
-            </DiffLine>
-            <DiffLine type="add" number={12}>
-              {"    />"}
-            </DiffLine>
-            <DiffLine type="context" number={13}>
-              {"  );"}
-            </DiffLine>
-            <DiffLine type="context" number={14}>
-              {"}"}
-            </DiffLine>
-          </DiffPanel>
-        </DiffViewer>
-      </div>
-
-      <div className="w-full max-w-xl border border-border p-1 rounded-xl relative">
-        <p className="mb-2 absolute -top-8">Inline diff</p>
-        <div className="w-full absolute -bottom-1 -left-1 -right-1 h-60 bg-linear-0 from-black to-transparent" />
-        <DiffViewer filename="app/home-screen.tsx" panes={1}>
-          <DiffPanel side="before">
-            <DiffLine type="del" number={1}>
-              {"import { "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {' } from "@/hooks/useVehicleState";'}
-            </DiffLine>
-            <DiffLine type="add" number={1}>
-              {"import { "}
-              <DiffMark className="text-emerald-200">useVehicleState</DiffMark>
-              {' } from "@/hooks/useVehicleState";'}
-            </DiffLine>
-            <DiffLine type="context" number={2}>
-              {'import { Dashboard } from "@/components/dashboard";'}
-            </DiffLine>
-            <DiffLine type="context" number={3}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={4}>
-              export function HomeScreen() {"{"}
-            </DiffLine>
-            <DiffLine type="del" number={5}>
-              {"  const { "}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {" } = "}
-              <DiffMark className="text-red-200">useVehicleState</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="add" number={5}>
-              {"  const { "}
-              <DiffMark className="text-emerald-200">selectedVehicle</DiffMark>
-              {", "}
-              <DiffMark className="text-emerald-200">refresh</DiffMark>
-              {" } = "}
-              <DiffMark className="text-emerald-200">useVehicleState</DiffMark>
-              {"();"}
-            </DiffLine>
-            <DiffLine type="context" number={6}>
-              {""}
-            </DiffLine>
-            <DiffLine type="context" number={7}>
-              {"  return ("}
-            </DiffLine>
-            <DiffLine type="del" number={8}>
-              {"    <Dashboard"}
-            </DiffLine>
-            <DiffLine type="del" number={9}>
-              {"      vehicle={"}
-              <DiffMark className="text-red-200">selectedVehicle</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={10}>
-              {"      onRefresh={"}
-              <DiffMark className="text-red-200">refresh</DiffMark>
-              {"}"}
-            </DiffLine>
-            <DiffLine type="del" number={11}>
-              {"      variant="}
-              <DiffMark className="text-red-200">"default"</DiffMark>
-            </DiffLine>
-            <DiffLine type="del" number={12}>
-              {"    />"}
-            </DiffLine>
-            <DiffLine type="context" number={13}>
-              {"  );"}
-            </DiffLine>
-            <DiffLine type="context" number={14}>
-              {"}"}
-            </DiffLine>
-          </DiffPanel>
-        </DiffViewer>
-      </div>
-    </div>
+    </main>
   );
 }
