@@ -1,6 +1,6 @@
 "use client";
 
-import { CopyButton } from "@/components/docs/copy-button";
+import { CodePanel } from "@/components/docs/code-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
@@ -32,21 +32,11 @@ export function CodeTabs({
 
       {tabs.map((tab) => (
         <TabsContent key={tab.label} value={tab.label}>
-          <div className="group relative rounded-md border border-border bg-neutral-950 text-sm">
-            <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-2">
-              <span className="font-mono text-xs text-neutral-400">
-                {tab.title}
-              </span>
-            </div>
-
-            <div className="relative">
-              <div
-                className="overflow-x-auto p-4 [&_pre]:bg-transparent! [&_pre]:p-0! [&_pre]:font-mono [&_pre]:text-[13px] [&_pre]:leading-relaxed [&_code]:bg-transparent!"
-                dangerouslySetInnerHTML={{ __html: tab.highlightedHtml }}
-              />
-              <CopyButton code={tab.code} />
-            </div>
-          </div>
+          <CodePanel
+            title={tab.title}
+            code={tab.code}
+            highlightedHtml={tab.highlightedHtml}
+          />
         </TabsContent>
       ))}
     </Tabs>

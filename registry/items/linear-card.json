@@ -1,0 +1,106 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "linear-card",
+  "type": "registry:block",
+  "title": "Linear Card",
+  "description": "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
+  "dependencies": [],
+  "registryDependencies": ["{{REGISTRY_ALIAS}}/card-wave"],
+  "categories": ["card", "marketing"],
+  "files": [
+    {
+      "path": "registry/base-vega/linear-card/linear-card.tsx",
+      "type": "registry:ui",
+      "target": "components/ui/linear-card.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/linear-card/preview.tsx",
+      "previewExportName": "LinearCardPreview",
+      "usagePath": "registry/base-vega/linear-card/usage.tsx",
+      "sourcePath": "registry/base-vega/linear-card/linear-card.tsx",
+      "props": [
+        {
+          "name": "children",
+          "type": "React.ReactNode",
+          "description": "Card content - compose with the sub-components below"
+        },
+        {
+          "name": "isLast",
+          "type": "boolean",
+          "default": "false",
+          "description": "When true, removes the right border so the last card in a row sits flush"
+        }
+      ],
+      "subComponents": [
+        {
+          "name": "LinearCardHeader",
+          "description": "Mono micro-label displayed above the card media. Hidden on mobile",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Header label text, e.g. \"FIG 0.1\""
+            }
+          ]
+        },
+        {
+          "name": "LinearCardHeading",
+          "description": "Primary heading inside the card body",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Heading text"
+            }
+          ]
+        },
+        {
+          "name": "LinearCardSubheading",
+          "description": "Muted description text inside the card body",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Subheading text"
+            }
+          ]
+        },
+        {
+          "name": "LinearCardBody",
+          "description": "Wrapper for heading + subheading. Provides vertical flex layout and small text size",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Body content - typically heading and subheading"
+            }
+          ]
+        },
+        {
+          "name": "LinearCardImageContainer",
+          "description": "Fixed-size container for an image (relative positioned for next/image fill)",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "An <Image /> or <img /> element"
+            }
+          ]
+        },
+        {
+          "name": "LinearCardSVGContainer",
+          "description": "Fixed-size container for an SVG graphic with overflow hidden",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "An SVG element or reactive SVG component"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

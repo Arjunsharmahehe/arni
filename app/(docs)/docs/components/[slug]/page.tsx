@@ -7,6 +7,7 @@ import { ComponentPreview } from "@/components/docs/component-preview";
 import { ComponentPreviewRenderer } from "@/components/docs/component-previews";
 import { PropsTable, SubComponentsTable } from "@/components/docs/props-table";
 import { getComponent } from "@/lib/component-registry";
+import { getInstallCommands } from "@/lib/registry-config";
 
 export default async function ComponentPage({
   params,
@@ -28,8 +29,16 @@ export default async function ComponentPage({
     notFound();
   }
 
+  const installCommands = getInstallCommands(slug);
+
   // Pre-highlight code on the server
-  const [usageHtml, sourceHtml] = await Promise.all([
+  const [
+    usageHtml,
+    sourceHtml,
+    npxInstallHtml,
+    pnpmInstallHtml,
+    bunInstallHtml,
+  ] = await Promise.all([
     codeToHtml(component.usage.trim(), {
       lang: "tsx",
       theme: "github-dark-dimmed",
@@ -38,7 +47,40 @@ export default async function ComponentPage({
       lang: "tsx",
       theme: "github-dark-dimmed",
     }),
+    codeToHtml(installCommands.npx, {
+      lang: "bash",
+      theme: "github-dark-dimmed",
+    }),
+    codeToHtml(installCommands.pnpm, {
+      lang: "bash",
+      theme: "github-dark-dimmed",
+    }),
+    codeToHtml(installCommands.bun, {
+      lang: "bash",
+      theme: "github-dark-dimmed",
+    }),
   ]);
+
+  const installTabs = [
+    {
+      label: "npx",
+      title: "Terminal",
+      code: installCommands.npx,
+      highlightedHtml: npxInstallHtml,
+    },
+    {
+      label: "pnpm dlx",
+      title: "Terminal",
+      code: installCommands.pnpm,
+      highlightedHtml: pnpmInstallHtml,
+    },
+    {
+      label: "bunx",
+      title: "Terminal",
+      code: installCommands.bun,
+      highlightedHtml: bunInstallHtml,
+    },
+  ];
 
   const codeTabs = [
     {
@@ -75,6 +117,14 @@ export default async function ComponentPage({
         <ComponentPreview>
           <ComponentPreviewRenderer slug={slug} />
         </ComponentPreview>
+      </div>
+
+      {/* Code (tabbed: Usage / Source) */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-mono font-medium text-muted-foreground uppercase tracking-wider">
+          Install
+        </h2>
+        <CodeTabs tabs={installTabs} />
       </div>
 
       {/* Code (tabbed: Usage / Source) */}

@@ -1,0 +1,137 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "diff-viewer",
+  "title": "Diff Viewer",
+  "description": "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
+  "dependencies": ["lucide-react"],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+      "content": "\"use client\";\n\nimport { File } from \"lucide-react\";\nimport {\n  Children,\n  type CSSProperties,\n  cloneElement,\n  createContext,\n  isValidElement,\n  type ReactNode,\n  use,\n  useMemo,\n} from \"react\";\nimport { cn } from \"@/lib/utils\";\n\ntype LineType = \"add\" | \"del\" | \"context\";\ntype DiffPattern = string | RegExp;\n\nexport interface DiffHighlightRule {\n  name: string;\n  pattern: DiffPattern;\n  flags?: string;\n  className?: string;\n  style?: CSSProperties;\n}\n\ninterface DiffToken {\n  className?: string;\n  name?: string;\n  start: number;\n  style?: CSSProperties;\n  value: string;\n}\n\ninterface DiffSegment {\n  className?: string;\n  marked: boolean;\n  start: number;\n  style?: CSSProperties;\n  value: string;\n}\n\nconst DiffLineContext = createContext<LineType>(\"context\");\n\nexport const DEFAULT_DIFF_HIGHLIGHT_RULES: DiffHighlightRule[] = [\n  {\n    name: \"comment\",\n    pattern: String.raw`//[^\\n]*`,\n    style: { color: \"#737373\" },\n  },\n  {\n    name: \"string\",\n    pattern: \"\\\"(?:[^\\\"\\\\]|\\\\.)*\\\"|'(?:[^'\\\\]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`\",\n    style: { color: \"#fbbf24\" },\n  },\n  {\n    name: \"keyword\",\n    pattern: String.raw`\\b(?:import|from|export|default|return|const|let|var|function|class|new|if|else|for|while|switch|case|break|continue|async|await|try|catch|finally|throw|extends|implements|interface|type|as|in|of|true|false|null|undefined)\\b`,\n    style: { color: \"#38bdf8\" },\n  },\n  {\n    name: \"type\",\n    pattern: String.raw`\\b[A-Z][A-Za-z0-9_$]*\\b`,\n    style: { color: \"#5eead4\" },\n  },\n  {\n    name: \"number\",\n    pattern: String.raw`\\b\\d+(?:\\.\\d+)?\\b`,\n    style: { color: \"#a3e635\" },\n  },\n  {\n    name: \"function\",\n    pattern: String.raw`\\b[a-zA-Z_$][\\w$]*(?=\\s*\\()`,\n    style: { color: \"#fb7185\" },\n  },\n  {\n    name: \"operator\",\n    pattern: String.raw`===|!==|=>|<=|>=|&&|\\|\\||[=<>+\\-*/%!?.,:]`,\n    style: { color: \"#d4d4d8\" },\n  },\n];\n\nconst DiffHighlightRulesContext = createContext<DiffHighlightRule[]>(\n  DEFAULT_DIFF_HIGHLIGHT_RULES,\n);\n\nfunction getStickyFlags(flags: string) {\n  return Array.from(new Set(`${flags.replace(/[gy]/g, \"\")}y`.split(\"\"))).join(\n    \"\",\n  );\n}\n\nfunction toStickyPattern(pattern: DiffPattern, flags?: string) {\n  if (pattern instanceof RegExp) {\n    return new RegExp(pattern.source, getStickyFlags(pattern.flags));\n  }\n\n  return new RegExp(pattern, getStickyFlags(flags ?? \"\"));\n}\n\nfunction tokenizeCode(code: string, rules: DiffHighlightRule[]) {\n  const matchers = rules.map((rule) => ({\n    ...rule,\n    matcher: toStickyPattern(rule.pattern, rule.flags),\n  }));\n\n  const tokens: DiffToken[] = [];\n  let index = 0;\n\n  while (index < code.length) {\n    let nextToken: DiffToken | null = null;\n\n    for (const rule of matchers) {\n      rule.matcher.lastIndex = index;\n      const match = rule.matcher.exec(code);\n      const value = match?.[0];\n\n      if (!value) {\n        continue;\n      }\n\n      nextToken = {\n        className: rule.className,\n        name: rule.name,\n        start: index,\n        style: rule.style,\n        value,\n      };\n      break;\n    }\n\n    if (!nextToken) {\n      let end = index + 1;\n\n      while (end < code.length) {\n        let matched = false;\n\n        for (const rule of matchers) {\n          rule.matcher.lastIndex = end;\n\n          if (rule.matcher.exec(code)?.[0]) {\n            matched = true;\n            break;\n          }\n        }\n\n        if (matched) {\n          break;\n        }\n\n        end += 1;\n      }\n\n      nextToken = {\n        start: index,\n        value: code.slice(index, end),\n      };\n    }\n\n    tokens.push(nextToken);\n    index += nextToken.value.length;\n  }\n\n  return tokens;\n}\n\nfunction buildMarkMap(code: string, marks: string[]) {\n  const map = new Array(code.length).fill(false);\n\n  for (const mark of marks) {\n    if (!mark) {\n      continue;\n    }\n\n    let from = 0;\n\n    while (from < code.length) {\n      const index = code.indexOf(mark, from);\n\n      if (index < 0) {\n        break;\n      }\n\n      for (let cursor = index; cursor < index + mark.length; cursor += 1) {\n        map[cursor] = true;\n      }\n\n      from = index + 1;\n    }\n  }\n\n  return map;\n}\n\nfunction buildCodeSegments(\n  code: string,\n  rules: DiffHighlightRule[],\n  marks: string[],\n) {\n  const tokens = tokenizeCode(code, rules);\n  const markMap = buildMarkMap(code, marks);\n  const segments: DiffSegment[] = [];\n\n  for (const token of tokens) {\n    let index = 0;\n\n    while (index < token.value.length) {\n      const marked = markMap[token.start + index] ?? false;\n      let cursor = index + 1;\n\n      while (\n        cursor < token.value.length &&\n        (markMap[token.start + cursor] ?? false) === marked\n      ) {\n        cursor += 1;\n      }\n\n      segments.push({\n        className: token.className,\n        marked,\n        start: token.start + index,\n        style: token.style,\n        value: token.value.slice(index, cursor),\n      });\n\n      index = cursor;\n    }\n  }\n\n  return segments;\n}\n\ninterface DiffViewerProps {\n  children: ReactNode;\n  className?: string;\n  filename?: string;\n  panes?: 1 | 2;\n  highlightRules?: DiffHighlightRule[];\n}\n\nfunction DiffViewer({\n  children,\n  className,\n  filename,\n  panes = 2,\n  highlightRules = DEFAULT_DIFF_HIGHLIGHT_RULES,\n}: DiffViewerProps) {\n  return (\n    <DiffHighlightRulesContext value={highlightRules}>\n      <div\n        className={cn(\n          \"overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 font-mono text-[13px] leading-6 shadow-2xl\",\n          className,\n        )}\n      >\n        {filename && (\n          <div className=\"flex items-center gap-2 border-b border-neutral-800 bg-neutral-900/60 px-4 py-4\">\n            <File className=\"size-3.5 text-neutral-500\" />\n            <span className=\"text-xs text-neutral-500\">{filename}</span>\n          </div>\n        )}\n\n        <div\n          className={`grid grid-cols-1 divide-y divide-neutral-800 ${panes === 1 ? \"\" : \"md:grid-cols-2\"} md:divide-x md:divide-y-0`}\n        >\n          {children}\n        </div>\n      </div>\n    </DiffHighlightRulesContext>\n  );\n}\n\ninterface DiffPanelProps {\n  children: ReactNode;\n  className?: string;\n  side: \"before\" | \"after\";\n}\n\nfunction DiffPanel({ children, className, side }: DiffPanelProps) {\n  return (\n    <div data-side={side} className={cn(\"overflow-x-auto\", className)}>\n      {children}\n    </div>\n  );\n}\n\nconst LINE_STYLES = {\n  add: {\n    bg: \"bg-emerald-500/8\",\n    bar: \"border-l-emerald-500\",\n    numColor: \"text-emerald-600/50\",\n    sign: \"+\",\n    signColor: \"text-emerald-500\",\n  },\n  context: {\n    bg: \"\",\n    bar: \"border-l-transparent\",\n    numColor: \"text-neutral-700\",\n    sign: \" \",\n    signColor: \"text-transparent\",\n  },\n  del: {\n    bg: \"bg-red-500/8\",\n    bar: \"border-l-red-500\",\n    numColor: \"text-red-500/50\",\n    sign: \"-\",\n    signColor: \"text-red-500\",\n  },\n} as const;\n\ninterface DiffLineProps {\n  children: ReactNode;\n  className?: string;\n  disableHighlighting?: boolean;\n  highlightRules?: DiffHighlightRule[];\n  number?: number;\n  type?: LineType;\n}\n\nfunction getTokenStyle(style?: CSSProperties) {\n  if (!style) {\n    return undefined;\n  }\n\n  const nextStyle: Record<string, string | number> = {};\n\n  for (const [key, value] of Object.entries(style)) {\n    if (value === undefined || key === \"color\") {\n      continue;\n    }\n\n    nextStyle[key] = value;\n  }\n\n  if (style.color) {\n    nextStyle[\"--diff-token-color\"] = String(style.color);\n    nextStyle.color = \"var(--diff-mark-text-color, var(--diff-token-color))\";\n  }\n\n  return nextStyle as CSSProperties;\n}\n\nfunction highlightTextContent(\n  text: string,\n  rules: DiffHighlightRule[],\n  keyPrefix: string,\n  withinMark: boolean,\n) {\n  if (withinMark || text.length === 0) {\n    return text;\n  }\n\n  return tokenizeCode(text, rules).map((token, index) => (\n    <span\n      key={`${keyPrefix}-${index}-${token.start}`}\n      className={token.className}\n      style={getTokenStyle(token.style)}\n    >\n      {token.value}\n    </span>\n  ));\n}\n\nfunction shouldSkipHighlighting(props: Record<string, unknown>) {\n  return (\n    props[\"data-diff-highlight\"] === \"off\" ||\n    props[\"data-diff-highlight\"] === false\n  );\n}\n\nfunction highlightNode(\n  node: ReactNode,\n  rules: DiffHighlightRule[],\n  keyPrefix: string,\n  withinMark = false,\n): ReactNode {\n  if (typeof node === \"string\") {\n    return highlightTextContent(node, rules, keyPrefix, withinMark);\n  }\n\n  if (typeof node === \"number\") {\n    return highlightTextContent(String(node), rules, keyPrefix, withinMark);\n  }\n\n  if (Array.isArray(node)) {\n    return node.map((child, index) =>\n      highlightNode(child, rules, `${keyPrefix}-${index}`, withinMark),\n    );\n  }\n\n  if (!isValidElement(node)) {\n    return node;\n  }\n\n  const props = node.props as Record<string, unknown>;\n\n  if (shouldSkipHighlighting(props)) {\n    return node;\n  }\n\n  if (!(\"children\" in props)) {\n    return node;\n  }\n\n  const nextChildren = Children.map(\n    props.children as ReactNode,\n    (child, index) =>\n      highlightNode(\n        child,\n        rules,\n        `${keyPrefix}-${index}`,\n        withinMark || node.type === DiffMark,\n      ),\n  );\n\n  return cloneElement(node, undefined, nextChildren);\n}\n\nfunction DiffLine({\n  children,\n  className,\n  disableHighlighting = false,\n  highlightRules,\n  number: lineNumber,\n  type = \"context\",\n}: DiffLineProps) {\n  const style = LINE_STYLES[type];\n  const inheritedRules = use(DiffHighlightRulesContext);\n  const rules = highlightRules ?? inheritedRules;\n  const highlightedChildren = useMemo(\n    () =>\n      disableHighlighting\n        ? children\n        : Children.map(children, (child, index) =>\n            highlightNode(\n              child,\n              rules,\n              `diff-line-${lineNumber ?? \"x\"}-${index}`,\n            ),\n          ),\n    [children, disableHighlighting, lineNumber, rules],\n  );\n\n  return (\n    <DiffLineContext value={type}>\n      <div\n        className={cn(\n          \"flex items-baseline border-l-[3px] pr-4\",\n          style.bg,\n          style.bar,\n          className,\n        )}\n      >\n        {lineNumber !== undefined && (\n          <span\n            className={cn(\n              \"w-8 shrink-0 select-none text-right text-[11px]\",\n              style.numColor,\n            )}\n          >\n            {lineNumber}\n          </span>\n        )}\n\n        <span\n          className={cn(\n            \"w-5 shrink-0 select-none text-center text-xs\",\n            style.signColor,\n          )}\n        >\n          {style.sign}\n        </span>\n\n        <span className=\"whitespace-pre text-neutral-300\">\n          {highlightedChildren}\n        </span>\n      </div>\n    </DiffLineContext>\n  );\n}\n\ninterface DiffCodeProps {\n  className?: string;\n  code: string;\n  marks?: string[];\n  rules?: DiffHighlightRule[];\n}\n\nfunction DiffCode({\n  className,\n  code,\n  marks = [],\n  rules = DEFAULT_DIFF_HIGHLIGHT_RULES,\n}: DiffCodeProps) {\n  const segments = useMemo(\n    () => buildCodeSegments(code, rules, marks),\n    [code, marks, rules],\n  );\n\n  return (\n    <span className={className}>\n      {segments.map((segment) => {\n        const content = (\n          <span className={segment.className} style={segment.style}>\n            {segment.value}\n          </span>\n        );\n\n        const key = `${segment.start}-${segment.value}-${segment.marked ? \"mark\" : \"plain\"}`;\n\n        if (!segment.marked) {\n          return <span key={key}>{content}</span>;\n        }\n\n        return <DiffMark key={key}>{content}</DiffMark>;\n      })}\n    </span>\n  );\n}\n\ninterface DiffMarkProps {\n  children: ReactNode;\n  markClassName?: string;\n  className?: string;\n}\n\nfunction DiffMark({ children, className, markClassName }: DiffMarkProps) {\n  const lineType = use(DiffLineContext);\n\n  const markBg =\n    lineType === \"add\"\n      ? \"bg-emerald-500/25\"\n      : lineType === \"del\"\n        ? \"bg-red-500/25\"\n        : \"bg-neutral-500/25\";\n\n  return (\n    <span className={cn(\"rounded-sm px-0.5\", markBg, markClassName)}>\n      <span className={className}>{children}</span>\n    </span>\n  );\n}\n\nDiffPanel.displayName = \"DiffPanel\";\n\nexport {\n  DiffViewer,\n  DiffPanel,\n  DiffLine,\n  DiffCode,\n  DiffMark,\n  buildCodeSegments,\n  tokenizeCode,\n};\nexport type {\n  DiffViewerProps,\n  DiffPanelProps,\n  DiffLineProps,\n  DiffCodeProps,\n  DiffMarkProps,\n  LineType,\n};\n",
+      "type": "registry:ui",
+      "target": "components/ui/diff-viewer.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/diff-viewer/preview.tsx",
+      "previewExportName": "DiffViewerPreview",
+      "usagePath": "registry/base-vega/diff-viewer/usage.tsx",
+      "sourcePath": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+      "props": [
+        {
+          "name": "children",
+          "type": "React.ReactNode",
+          "description": "Compose with DiffPanel children to define the before and after panes"
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "description": "Optional file label rendered in the header, like a code block title"
+        },
+        {
+          "name": "highlightRules",
+          "type": "DiffHighlightRule[]",
+          "default": "DEFAULT_DIFF_HIGHLIGHT_RULES",
+          "description": "Tokenizer rules used to automatically syntax-highlight text children inside DiffLine"
+        },
+        {
+          "name": "panes",
+          "type": "1 | 2",
+          "default": "2",
+          "description": "The number of panes your diff will have. Useful when creating inline diff-view"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "description": "Custom classes applied to the outer diff viewer container"
+        }
+      ],
+      "subComponents": [
+        {
+          "name": "DiffPanel",
+          "description": "One side of the diff. On mobile the panels stack vertically; from md upwards they render side by side.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Diff lines for a single side of the comparison"
+            },
+            {
+              "name": "side",
+              "type": "\"before\" | \"after\"",
+              "description": "Logical panel side used for composition and semantics"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Custom classes for the panel wrapper"
+            }
+          ]
+        },
+        {
+          "name": "DiffLine",
+          "description": "A single diff row. Automatically highlights text children and provides add/del state to nested DiffMark elements.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Line content. Plain text is tokenized automatically; nested DiffMark stays precise."
+            },
+            {
+              "name": "type",
+              "type": "\"add\" | \"del\" | \"context\"",
+              "default": "\"context\"",
+              "description": "Controls line chrome, sign, and inherited mark styling"
+            },
+            {
+              "name": "number",
+              "type": "number",
+              "description": "Optional line number displayed in the gutter"
+            },
+            {
+              "name": "highlightRules",
+              "type": "DiffHighlightRule[]",
+              "description": "Optional per-line override for syntax highlighting rules"
+            },
+            {
+              "name": "disableHighlighting",
+              "type": "boolean",
+              "default": "false",
+              "description": "Disables automatic syntax highlighting for that line"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Custom classes for the line wrapper"
+            }
+          ]
+        },
+        {
+          "name": "DiffMark",
+          "description": "Inline changed fragment. Inherits add/del state from the parent DiffLine and lets you color the inner text directly with className.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "The exact changed text or nested content to emphasize"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Classes applied to the inner text inside the highlighted mark"
+            },
+            {
+              "name": "markClassName",
+              "type": "string",
+              "description": "Optional classes for the outer highlighted wrapper"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "categories": ["code", "marketing"],
+  "type": "registry:component"
+}

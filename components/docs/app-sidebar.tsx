@@ -23,9 +23,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <Link href="/" className="flex items-center gap-2 px-2 py-1.5">
-          <span className="font-semibold text-sm tracking-tight">
-            Components
-          </span>
+          <span className="font-semibold text-sm tracking-tight">Arni</span>
         </Link>
       </SidebarHeader>
 
@@ -40,6 +38,14 @@ export function AppSidebar() {
                   isActive={pathname === "/docs"}
                 >
                   <span>Introduction</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/docs/setup" />}
+                  isActive={pathname === "/docs/setup"}
+                >
+                  <span>Setup</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

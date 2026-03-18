@@ -1,0 +1,68 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "hero-background",
+  "type": "registry:component",
+  "title": "Hero Background",
+  "description": "An animated glow-and-stars backdrop you can drop into any relative container to build cinematic landing sections.",
+  "dependencies": ["motion"],
+  "categories": ["background", "marketing"],
+  "files": [
+    {
+      "path": "registry/base-vega/hero-background/hero-background.tsx",
+      "type": "registry:component",
+      "target": "components/backgrounds/hero-background.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/hero-background/preview.tsx",
+      "previewExportName": "HeroBackgroundPreview",
+      "usagePath": "registry/base-vega/hero-background/usage.tsx",
+      "sourcePath": "registry/base-vega/hero-background/hero-background.tsx",
+      "props": [
+        {
+          "name": "glowColor",
+          "type": "string",
+          "default": "\"#2563eb\"",
+          "description": "Accent color used across the ambient glow layers."
+        },
+        {
+          "name": "glowOpacity",
+          "type": "number",
+          "default": "0.72",
+          "description": "Controls the intensity of the moving glow bloom."
+        },
+        {
+          "name": "starOpacity",
+          "type": "number",
+          "default": "0.08",
+          "description": "Sets the visibility of the dotted star field overlay."
+        },
+        {
+          "name": "starSize",
+          "type": "number",
+          "default": "22",
+          "description": "Adjusts the spacing of the dot pattern used as stars."
+        },
+        {
+          "name": "motionSpeed",
+          "type": "number",
+          "default": "1",
+          "description": "Speeds up or slows down the ambient glow animation."
+        },
+        {
+          "name": "animated",
+          "type": "boolean",
+          "default": "true",
+          "description": "Disables motion while keeping the static background visible."
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "description": "Optional classes for the absolutely positioned background wrapper."
+        }
+      ],
+      "subComponents": []
+    }
+  }
+}

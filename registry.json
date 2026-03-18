@@ -1,0 +1,376 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "arni",
+  "homepage": "http://localhost:3000",
+  "items": [
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "card-wave",
+      "type": "registry:component",
+      "title": "Card Wave",
+      "description": "A tastefull svg with interactive hover effects to make the boring cards interesting",
+      "dependencies": ["motion"],
+      "registryDependencies": [],
+      "categories": ["svg", "motion"],
+      "files": [
+        {
+          "path": "registry/base-vega/card-wave/card-wave.tsx",
+          "type": "registry:component",
+          "target": "components/reactive-svg/card-wave.tsx"
+        }
+      ],
+      "meta": {
+        "docs": {
+          "previewPath": "registry/base-vega/card-wave/preview.tsx",
+          "previewExportName": "CardWavePreview",
+          "usagePath": "registry/base-vega/card-wave/usage.tsx",
+          "sourcePath": "registry/base-vega/card-wave/card-wave.tsx",
+          "props": [
+            {
+              "name": "cardWidth",
+              "default": "223",
+              "type": "number",
+              "description": "The width of the card"
+            },
+            {
+              "name": "defaultHoverIndex",
+              "default": "6",
+              "type": "number",
+              "description": "The index of the wave to hover by default"
+            },
+            {
+              "name": "numCards",
+              "default": "18  ",
+              "type": "number",
+              "description": "The number of cards to have in the card wave"
+            },
+            {
+              "name": "startX",
+              "default": "undefined",
+              "type": "number | undefined",
+              "description": "The starting x position of the wave"
+            },
+            {
+              "name": "startY",
+              "default": "undefined",
+              "type": "number | undefined",
+              "description": "The starting y position of the wave"
+            }
+          ],
+          "subComponents": []
+        }
+      }
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "diff-viewer",
+      "type": "registry:component",
+      "title": "Diff Viewer",
+      "description": "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
+      "dependencies": ["lucide-react"],
+      "categories": ["code", "marketing"],
+      "files": [
+        {
+          "path": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+          "type": "registry:ui",
+          "target": "components/ui/diff-viewer.tsx"
+        }
+      ],
+      "meta": {
+        "docs": {
+          "previewPath": "registry/base-vega/diff-viewer/preview.tsx",
+          "previewExportName": "DiffViewerPreview",
+          "usagePath": "registry/base-vega/diff-viewer/usage.tsx",
+          "sourcePath": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Compose with DiffPanel children to define the before and after panes"
+            },
+            {
+              "name": "filename",
+              "type": "string",
+              "description": "Optional file label rendered in the header, like a code block title"
+            },
+            {
+              "name": "highlightRules",
+              "type": "DiffHighlightRule[]",
+              "default": "DEFAULT_DIFF_HIGHLIGHT_RULES",
+              "description": "Tokenizer rules used to automatically syntax-highlight text children inside DiffLine"
+            },
+            {
+              "name": "panes",
+              "type": "1 | 2",
+              "default": "2",
+              "description": "The number of panes your diff will have. Useful when creating inline diff-view"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Custom classes applied to the outer diff viewer container"
+            }
+          ],
+          "subComponents": [
+            {
+              "name": "DiffPanel",
+              "description": "One side of the diff. On mobile the panels stack vertically; from md upwards they render side by side.",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Diff lines for a single side of the comparison"
+                },
+                {
+                  "name": "side",
+                  "type": "\"before\" | \"after\"",
+                  "description": "Logical panel side used for composition and semantics"
+                },
+                {
+                  "name": "className",
+                  "type": "string",
+                  "description": "Custom classes for the panel wrapper"
+                }
+              ]
+            },
+            {
+              "name": "DiffLine",
+              "description": "A single diff row. Automatically highlights text children and provides add/del state to nested DiffMark elements.",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Line content. Plain text is tokenized automatically; nested DiffMark stays precise."
+                },
+                {
+                  "name": "type",
+                  "type": "\"add\" | \"del\" | \"context\"",
+                  "default": "\"context\"",
+                  "description": "Controls line chrome, sign, and inherited mark styling"
+                },
+                {
+                  "name": "number",
+                  "type": "number",
+                  "description": "Optional line number displayed in the gutter"
+                },
+                {
+                  "name": "highlightRules",
+                  "type": "DiffHighlightRule[]",
+                  "description": "Optional per-line override for syntax highlighting rules"
+                },
+                {
+                  "name": "disableHighlighting",
+                  "type": "boolean",
+                  "default": "false",
+                  "description": "Disables automatic syntax highlighting for that line"
+                },
+                {
+                  "name": "className",
+                  "type": "string",
+                  "description": "Custom classes for the line wrapper"
+                }
+              ]
+            },
+            {
+              "name": "DiffMark",
+              "description": "Inline changed fragment. Inherits add/del state from the parent DiffLine and lets you color the inner text directly with className.",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "The exact changed text or nested content to emphasize"
+                },
+                {
+                  "name": "className",
+                  "type": "string",
+                  "description": "Classes applied to the inner text inside the highlighted mark"
+                },
+                {
+                  "name": "markClassName",
+                  "type": "string",
+                  "description": "Optional classes for the outer highlighted wrapper"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "registryDependencies": []
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "hero-background",
+      "type": "registry:component",
+      "title": "Hero Background",
+      "description": "An animated glow-and-stars backdrop you can drop into any relative container to build cinematic landing sections.",
+      "dependencies": ["motion"],
+      "categories": ["background", "marketing"],
+      "files": [
+        {
+          "path": "registry/base-vega/hero-background/hero-background.tsx",
+          "type": "registry:component",
+          "target": "components/backgrounds/hero-background.tsx"
+        }
+      ],
+      "meta": {
+        "docs": {
+          "previewPath": "registry/base-vega/hero-background/preview.tsx",
+          "previewExportName": "HeroBackgroundPreview",
+          "usagePath": "registry/base-vega/hero-background/usage.tsx",
+          "sourcePath": "registry/base-vega/hero-background/hero-background.tsx",
+          "props": [
+            {
+              "name": "glowColor",
+              "type": "string",
+              "default": "\"#2563eb\"",
+              "description": "Accent color used across the ambient glow layers."
+            },
+            {
+              "name": "glowOpacity",
+              "type": "number",
+              "default": "0.72",
+              "description": "Controls the intensity of the moving glow bloom."
+            },
+            {
+              "name": "starOpacity",
+              "type": "number",
+              "default": "0.08",
+              "description": "Sets the visibility of the dotted star field overlay."
+            },
+            {
+              "name": "starSize",
+              "type": "number",
+              "default": "22",
+              "description": "Adjusts the spacing of the dot pattern used as stars."
+            },
+            {
+              "name": "motionSpeed",
+              "type": "number",
+              "default": "1",
+              "description": "Speeds up or slows down the ambient glow animation."
+            },
+            {
+              "name": "animated",
+              "type": "boolean",
+              "default": "true",
+              "description": "Disables motion while keeping the static background visible."
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Optional classes for the absolutely positioned background wrapper."
+            }
+          ],
+          "subComponents": []
+        }
+      },
+      "registryDependencies": []
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "linear-card",
+      "type": "registry:block",
+      "title": "Linear Card",
+      "description": "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
+      "dependencies": [],
+      "registryDependencies": ["@arni/card-wave"],
+      "categories": ["card", "marketing"],
+      "files": [
+        {
+          "path": "registry/base-vega/linear-card/linear-card.tsx",
+          "type": "registry:ui",
+          "target": "components/ui/linear-card.tsx"
+        }
+      ],
+      "meta": {
+        "docs": {
+          "previewPath": "registry/base-vega/linear-card/preview.tsx",
+          "previewExportName": "LinearCardPreview",
+          "usagePath": "registry/base-vega/linear-card/usage.tsx",
+          "sourcePath": "registry/base-vega/linear-card/linear-card.tsx",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Card content - compose with the sub-components below"
+            },
+            {
+              "name": "isLast",
+              "type": "boolean",
+              "default": "false",
+              "description": "When true, removes the right border so the last card in a row sits flush"
+            }
+          ],
+          "subComponents": [
+            {
+              "name": "LinearCardHeader",
+              "description": "Mono micro-label displayed above the card media. Hidden on mobile",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Header label text, e.g. \"FIG 0.1\""
+                }
+              ]
+            },
+            {
+              "name": "LinearCardHeading",
+              "description": "Primary heading inside the card body",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Heading text"
+                }
+              ]
+            },
+            {
+              "name": "LinearCardSubheading",
+              "description": "Muted description text inside the card body",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Subheading text"
+                }
+              ]
+            },
+            {
+              "name": "LinearCardBody",
+              "description": "Wrapper for heading + subheading. Provides vertical flex layout and small text size",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "Body content - typically heading and subheading"
+                }
+              ]
+            },
+            {
+              "name": "LinearCardImageContainer",
+              "description": "Fixed-size container for an image (relative positioned for next/image fill)",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "An <Image /> or <img /> element"
+                }
+              ]
+            },
+            {
+              "name": "LinearCardSVGContainer",
+              "description": "Fixed-size container for an SVG graphic with overflow hidden",
+              "props": [
+                {
+                  "name": "children",
+                  "type": "React.ReactNode",
+                  "description": "An SVG element or reactive SVG component"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

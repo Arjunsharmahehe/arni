@@ -1,0 +1,59 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "card-wave",
+  "title": "Card Wave",
+  "description": "A tastefull svg with interactive hover effects to make the boring cards interesting",
+  "dependencies": ["motion"],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/base-vega/card-wave/card-wave.tsx",
+      "content": "import {\n  type MotionValue,\n  motion,\n  useMotionValue,\n  useSpring,\n  useTransform,\n} from \"motion/react\";\nimport { type MouseEventHandler, useRef } from \"react\";\n\nconst BASE_W = 223;\nconst BASE_DX = -20;\nconst BASE_DY = 4;\nconst BASE_H = 32;\nconst MAX_H = 100;\nconst VB_W = 420;\nconst VB_H = 260;\n\nfunction expWave(dist: number) {\n  const d = Math.abs(dist) / 45;\n  const rate = dist > 0 ? 0.75 : 2.6;\n  return Math.exp(-d * rate);\n}\n\nfunction buildOutline(x: number, y: number, h: number, s: number) {\n  return [\n    `M ${x + 212.875 * s} ${y + h + 108}`,\n    `C ${x + 210.875 * s} ${y + h + 107} ${x + 166.375 * s} ${y + h + 84.8} ${x + 4.375 * s} ${y + h + 4}`,\n    `C ${x + 4.375 * s} ${y + h + 4} ${x + 1.375 * s} ${y + h + 2.245} ${x + 0.875 * s} ${y + h + 0.122}`,\n    `C ${x + 0.375 * s} ${y + h - 2} ${x + 0.375 * s} ${y + 6.5} ${x + 0.875 * s} ${y + 4.5}`,\n    `C ${x + 1.375 * s} ${y + 2.5} ${x + 3.875 * s} ${y + 0.5} ${x + 5.375 * s} ${y + 0.5}`,\n    `H ${x + 7.875 * s}`,\n    `C ${x + 8.375 * s} ${y + 0.5} ${x + 220.875 * s} ${y + 106} ${x + 220.875 * s} ${y + 108}`,\n    `C ${x + 220.875 * s} ${y + 110} ${x + 222.375 * s} ${y + h + 103.5} ${x + 221.375 * s} ${y + h + 105}`,\n    `C ${x + 220.375 * s} ${y + h + 106.5} ${x + 220.075 * s} ${y + h + 106.95} ${x + 217.875 * s} ${y + h + 108}`,\n    `C ${x + 215.675 * s} ${y + h + 109.05} ${x + 212.875 * s} ${y + h + 108} ${x + 212.875 * s} ${y + h + 108} Z`,\n  ].join(\" \");\n}\n\nfunction buildInner(x: number, y: number, h: number, s: number) {\n  return [\n    `M ${x + 7.375 * s} ${y + 6.5}`,\n    `C ${x + 7.375 * s} ${y + 6.5} ${x + 132.013 * s} ${y + 68.667} ${x + 211.875 * s} ${y + 108.5}`,\n    `C ${x + 211.875 * s} ${y + 108.5} ${x + 215.375 * s} ${y + 110.5} ${x + 215.375 * s} ${y + 112.5}`,\n    `C ${x + 215.375 * s} ${y + 114.5} ${x + 215.375 * s} ${y + h + 103.5} ${x + 215.375 * s} ${y + h + 103.5}`,\n  ].join(\" \");\n}\n\ntype CardProps = {\n  index: number;\n  mouseX: MotionValue<number>;\n  startX: number;\n  startY: number;\n  s: number;\n  dx: number;\n};\n\nconst Card = ({ index, mouseX, startX, startY, s, dx }: CardProps) => {\n  const x = startX + index * dx;\n  const cardCenterX = x + (BASE_W * s) / 2;\n\n  const height = useTransform(mouseX, (val) => {\n    const dist = cardCenterX - val;\n    return BASE_H + expWave(dist) * MAX_H;\n  });\n\n  const outlinePath = useTransform(height, (h) => {\n    const y = startY + index * BASE_DY - h;\n    return buildOutline(x, y, h, s);\n  });\n\n  const innerPath = useTransform(height, (h) => {\n    const y = startY + index * BASE_DY - h;\n    return buildInner(x, y, h, s);\n  });\n\n  const strokeColor = useTransform(mouseX, (val) => {\n    const intensity = expWave(cardCenterX - val);\n    const v = Math.round(40 + intensity * 215);\n    return `rgb(${v},${v},${v})`;\n  });\n\n  const innerStroke = useTransform(mouseX, (val) => {\n    const intensity = expWave(cardCenterX - val);\n    const v = Math.round(20 + intensity * 30);\n    return `rgb(${v},${v},${v})`;\n  });\n\n  return (\n    <g>\n      <motion.path\n        d={outlinePath}\n        fill=\"#0a0a0a\"\n        stroke={strokeColor}\n        strokeWidth=\"0.5\"\n      />\n      <motion.path\n        d={innerPath}\n        fill=\"none\"\n        stroke={innerStroke}\n        strokeWidth=\"1\"\n      />\n    </g>\n  );\n};\n\nexport default function CardWave({\n  cardWidth = 223,\n  defaultHoverIndex = 6,\n  numCards = 18,\n  startX: _startX = undefined,\n  startY: _startY = undefined,\n}: {\n  cardWidth?: number;\n  defaultHoverIndex?: number;\n  numCards?: number;\n  startX?: number | undefined;\n  startY?: number | undefined;\n}) {\n  const containerRef = useRef<SVGSVGElement | null>(null);\n\n  const s = cardWidth / BASE_W;\n  const dx = BASE_DX * s;\n  const startX = _startX ?? Math.round(VB_W * 0.75 - cardWidth);\n  const startY = _startY ?? Math.round(VB_H * 0.71);\n  const defaultX = startX + defaultHoverIndex * dx + (BASE_W * s) / 2;\n  const mouseX = useMotionValue(defaultX);\n  const smoothMouseX = useSpring(mouseX, { stiffness: 150, damping: 50 });\n\n  const handleMouseMove: MouseEventHandler<SVGSVGElement> = (event) => {\n    const element = containerRef.current;\n    if (!element) return;\n    const rect = element.getBoundingClientRect();\n\n    const scaleX = VB_W / rect.width;\n    mouseX.set((event.clientX - rect.left) * scaleX);\n  };\n\n  const handleMouseLeave = () => {\n    mouseX.set(defaultX);\n  };\n\n  return (\n    <svg\n      ref={containerRef}\n      viewBox={`0 0 ${VB_W} ${VB_H}`}\n      style={{ width: \"100%\", height: \"100%\", display: \"block\" }}\n      aria-hidden=\"true\"\n      focusable=\"false\"\n      onMouseMove={handleMouseMove}\n      onMouseLeave={handleMouseLeave}\n    >\n      {Array.from({ length: numCards }, (_, index) => ({\n        id: `card-${index}`,\n        index,\n      })).map((card) => (\n        <Card\n          key={card.id}\n          index={card.index}\n          mouseX={smoothMouseX}\n          startX={startX}\n          startY={startY}\n          s={s}\n          dx={dx}\n        />\n      ))}\n    </svg>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "components/reactive-svg/card-wave.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/card-wave/preview.tsx",
+      "previewExportName": "CardWavePreview",
+      "usagePath": "registry/base-vega/card-wave/usage.tsx",
+      "sourcePath": "registry/base-vega/card-wave/card-wave.tsx",
+      "props": [
+        {
+          "name": "cardWidth",
+          "default": "223",
+          "type": "number",
+          "description": "The width of the card"
+        },
+        {
+          "name": "defaultHoverIndex",
+          "default": "6",
+          "type": "number",
+          "description": "The index of the wave to hover by default"
+        },
+        {
+          "name": "numCards",
+          "default": "18  ",
+          "type": "number",
+          "description": "The number of cards to have in the card wave"
+        },
+        {
+          "name": "startX",
+          "default": "undefined",
+          "type": "number | undefined",
+          "description": "The starting x position of the wave"
+        },
+        {
+          "name": "startY",
+          "default": "undefined",
+          "type": "number | undefined",
+          "description": "The starting y position of the wave"
+        }
+      ],
+      "subComponents": []
+    }
+  },
+  "categories": ["svg", "motion"],
+  "type": "registry:component"
+}

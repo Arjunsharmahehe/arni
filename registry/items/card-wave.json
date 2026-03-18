@@ -1,0 +1,58 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "card-wave",
+  "type": "registry:component",
+  "title": "Card Wave",
+  "description": "A tastefull svg with interactive hover effects to make the boring cards interesting",
+  "dependencies": ["motion"],
+  "registryDependencies": [],
+  "categories": ["svg", "motion"],
+  "files": [
+    {
+      "path": "registry/base-vega/card-wave/card-wave.tsx",
+      "type": "registry:component",
+      "target": "components/reactive-svg/card-wave.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/card-wave/preview.tsx",
+      "previewExportName": "CardWavePreview",
+      "usagePath": "registry/base-vega/card-wave/usage.tsx",
+      "sourcePath": "registry/base-vega/card-wave/card-wave.tsx",
+      "props": [
+        {
+          "name": "cardWidth",
+          "default": "223",
+          "type": "number",
+          "description": "The width of the card"
+        },
+        {
+          "name": "defaultHoverIndex",
+          "default": "6",
+          "type": "number",
+          "description": "The index of the wave to hover by default"
+        },
+        {
+          "name": "numCards",
+          "default": "18  ",
+          "type": "number",
+          "description": "The number of cards to have in the card wave"
+        },
+        {
+          "name": "startX",
+          "default": "undefined",
+          "type": "number | undefined",
+          "description": "The starting x position of the wave"
+        },
+        {
+          "name": "startY",
+          "default": "undefined",
+          "type": "number | undefined",
+          "description": "The starting y position of the wave"
+        }
+      ],
+      "subComponents": []
+    }
+  }
+}

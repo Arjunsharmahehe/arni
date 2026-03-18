@@ -1,0 +1,135 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "diff-viewer",
+  "type": "registry:component",
+  "title": "Diff Viewer",
+  "description": "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
+  "dependencies": ["lucide-react"],
+  "categories": ["code", "marketing"],
+  "files": [
+    {
+      "path": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+      "type": "registry:ui",
+      "target": "components/ui/diff-viewer.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/diff-viewer/preview.tsx",
+      "previewExportName": "DiffViewerPreview",
+      "usagePath": "registry/base-vega/diff-viewer/usage.tsx",
+      "sourcePath": "registry/base-vega/diff-viewer/diff-viewer.tsx",
+      "props": [
+        {
+          "name": "children",
+          "type": "React.ReactNode",
+          "description": "Compose with DiffPanel children to define the before and after panes"
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "description": "Optional file label rendered in the header, like a code block title"
+        },
+        {
+          "name": "highlightRules",
+          "type": "DiffHighlightRule[]",
+          "default": "DEFAULT_DIFF_HIGHLIGHT_RULES",
+          "description": "Tokenizer rules used to automatically syntax-highlight text children inside DiffLine"
+        },
+        {
+          "name": "panes",
+          "type": "1 | 2",
+          "default": "2",
+          "description": "The number of panes your diff will have. Useful when creating inline diff-view"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "description": "Custom classes applied to the outer diff viewer container"
+        }
+      ],
+      "subComponents": [
+        {
+          "name": "DiffPanel",
+          "description": "One side of the diff. On mobile the panels stack vertically; from md upwards they render side by side.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Diff lines for a single side of the comparison"
+            },
+            {
+              "name": "side",
+              "type": "\"before\" | \"after\"",
+              "description": "Logical panel side used for composition and semantics"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Custom classes for the panel wrapper"
+            }
+          ]
+        },
+        {
+          "name": "DiffLine",
+          "description": "A single diff row. Automatically highlights text children and provides add/del state to nested DiffMark elements.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Line content. Plain text is tokenized automatically; nested DiffMark stays precise."
+            },
+            {
+              "name": "type",
+              "type": "\"add\" | \"del\" | \"context\"",
+              "default": "\"context\"",
+              "description": "Controls line chrome, sign, and inherited mark styling"
+            },
+            {
+              "name": "number",
+              "type": "number",
+              "description": "Optional line number displayed in the gutter"
+            },
+            {
+              "name": "highlightRules",
+              "type": "DiffHighlightRule[]",
+              "description": "Optional per-line override for syntax highlighting rules"
+            },
+            {
+              "name": "disableHighlighting",
+              "type": "boolean",
+              "default": "false",
+              "description": "Disables automatic syntax highlighting for that line"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Custom classes for the line wrapper"
+            }
+          ]
+        },
+        {
+          "name": "DiffMark",
+          "description": "Inline changed fragment. Inherits add/del state from the parent DiffLine and lets you color the inner text directly with className.",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "The exact changed text or nested content to emphasize"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Classes applied to the inner text inside the highlighted mark"
+            },
+            {
+              "name": "markClassName",
+              "type": "string",
+              "description": "Optional classes for the outer highlighted wrapper"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
