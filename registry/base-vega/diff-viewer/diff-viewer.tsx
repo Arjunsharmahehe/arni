@@ -28,9 +28,10 @@ interface DiffToken {
   className?: string;
   name?: string;
   start: number;
-  style?: CSSProperties;
   value: string;
 }
+
+const EMPTY_MARKS: string[] = [];
 
 interface DiffSegment {
   className?: string;
@@ -350,9 +351,9 @@ function highlightTextContent(
     return text;
   }
 
-  return tokenizeCode(text, rules).map((token, index) => (
+  return tokenizeCode(text, rules).map((token) => (
     <span
-      key={`${keyPrefix}-${index}-${token.start}`}
+      key={`${keyPrefix}-${token.start}-${token.value}`}
       className={token.className}
       style={getTokenStyle(token.style)}
     >
@@ -489,7 +490,7 @@ interface DiffCodeProps {
 function DiffCode({
   className,
   code,
-  marks = [],
+  marks = EMPTY_MARKS,
   rules = DEFAULT_DIFF_HIGHLIGHT_RULES,
 }: DiffCodeProps) {
   const segments = useMemo(

@@ -14,7 +14,13 @@ import {
 <LinearCard>
   <LinearCardHeader>FIG 0.1</LinearCardHeader>
   <LinearCardImageContainer>
-    <Image src="/your-image.png" alt="Card image" fill className="cover" />
+    <Image
+      src="/your-image.png"
+      alt="Card image"
+      fill
+      sizes="(max-width: 768px) 100vw, 50vw"
+      className="cover"
+    />
   </LinearCardImageContainer>
   <LinearCardBody>
     <LinearCardHeading>Designed for speed</LinearCardHeading>

@@ -22,6 +22,7 @@ export function LinearCardPreview() {
             src="/Linear-card-image.png"
             alt="Linear Card Image"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="cover"
           />
         </LinearCardImageContainer>
