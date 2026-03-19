@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { CodePanel } from "@/components/docs/code-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,18 @@ export function CodeTabs({
 }) {
   if (tabs.length === 0) return null;
 
+  const [activeTabLabel, setActiveTabLabel] = useState(tabs[0]?.label);
+  const activeTab = useMemo(
+    () => tabs.find((tab) => tab.label === activeTabLabel) ?? tabs[0],
+    [activeTabLabel, tabs],
+  );
+
   return (
-    <Tabs defaultValue={tabs[0].label} className={cn("space-y-0", className)}>
+    <Tabs
+      value={activeTab.label}
+      onValueChange={setActiveTabLabel}
+      className={cn("space-y-0", className)}
+    >
       <TabsList variant="line" className="mb-4">
         {tabs.map((tab) => (
           <TabsTrigger key={tab.label} value={tab.label}>
@@ -30,15 +41,14 @@ export function CodeTabs({
         ))}
       </TabsList>
 
-      {tabs.map((tab) => (
-        <TabsContent key={tab.label} value={tab.label}>
-          <CodePanel
-            title={tab.title}
-            code={tab.code}
-            highlightedHtml={tab.highlightedHtml}
-          />
-        </TabsContent>
-      ))}
+      <TabsContent value={activeTab.label}>
+        <CodePanel
+          key={activeTab.label}
+          title={activeTab.title}
+          code={activeTab.code}
+          highlightedHtml={activeTab.highlightedHtml}
+        />
+      </TabsContent>
     </Tabs>
   );
 }

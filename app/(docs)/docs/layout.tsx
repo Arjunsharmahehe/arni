@@ -1,12 +1,5 @@
-"use client";
-
-import { AppSidebar } from "@/components/docs/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { DocsLayoutShell } from "@/components/docs/docs-layout-shell";
+import { DocsSidebarTrigger } from "@/components/docs/docs-sidebar-trigger";
 
 export default function DocsLayout({
   children,
@@ -14,18 +7,16 @@ export default function DocsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
+    <DocsLayoutShell
+      header={
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Docs
-          </span>
+          <DocsSidebarTrigger />
+          <div className="mr-2 h-4 w-px bg-border" />
+          <span className="text-sm font-medium text-muted-foreground">Docs</span>
         </header>
-        <div className="flex-1 overflow-auto">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+      }
+    >
+      {children}
+    </DocsLayoutShell>
   );
 }

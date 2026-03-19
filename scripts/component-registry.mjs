@@ -7,6 +7,7 @@ import path from "node:path";
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { promisify } from "node:util";
+import { codeToHtml } from "shiki";
 
 const execAsync = promisify(exec);
 
@@ -17,6 +18,12 @@ const GENERATED_REGISTRY_PATH = path.join(
   "lib",
   "component-registry.generated.ts",
 );
+const GENERATED_NAV_PATH = path.join(
+  ROOT,
+  "lib",
+  "component-navigation.generated.ts",
+);
+const GENERATED_SETUP_PATH = path.join(ROOT, "lib", "docs-setup.generated.ts");
 const GENERATED_PREVIEWS_PATH = path.join(
   ROOT,
   "components",
@@ -40,6 +47,7 @@ const DEFAULT_HOMEPAGE =
   "http://localhost:3000";
 const DEFAULT_STYLE = "base-vega";
 const BACKTICK_TOKEN = "__REGISTRY_BACKTICK__";
+const SHIKI_THEME = "github-dark-dimmed";
 
 const FRAMEWORK_DEPENDENCIES = new Set(["next", "react", "react-dom"]);
 const BUILTIN_MODULES = new Set([
@@ -80,6 +88,23 @@ function parseCsv(value) {
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+function buildInstallCommands(slug) {
+  const target = `${DEFAULT_REGISTRY_ALIAS}/${slug}`;
+
+  return {
+    npx: `npx shadcn@latest add ${target}`,
+    pnpm: `pnpm dlx shadcn@latest add ${target}`,
+    bun: `bunx --bun shadcn@latest add ${target}`,
+  };
+}
+
+async function highlightCode(code, lang) {
+  return codeToHtml(code.trim(), {
+    lang,
+    theme: SHIKI_THEME,
+  });
 }
 
 function replaceRegistryAliasToken(value) {
@@ -671,6 +696,25 @@ async function buildDocsComponents(items) {
 
     const usagePath = path.join(ROOT, docs.usagePath);
     const sourcePath = docs.sourcePath ?? item.files?.[0]?.path;
+    const usage = await readText(usagePath);
+    const sourceCode = sourcePath
+      ? await readText(path.join(ROOT, sourcePath))
+      : "";
+    const installCommands = buildInstallCommands(item.name);
+
+    const [
+      usageHtml,
+      sourceHtml,
+      npxInstallHtml,
+      pnpmInstallHtml,
+      bunInstallHtml,
+    ] = await Promise.all([
+      highlightCode(usage, "tsx"),
+      highlightCode(sourceCode, "tsx"),
+      highlightCode(installCommands.npx, "bash"),
+      highlightCode(installCommands.pnpm, "bash"),
+      highlightCode(installCommands.bun, "bash"),
+    ]);
 
     result.push({
       slug: item.name,
@@ -678,10 +722,21 @@ async function buildDocsComponents(items) {
       description: item.description,
       categories: item.categories ?? [],
       sourcePath,
+      sourceCode,
+      installCommands,
+      highlighted: {
+        usage: usageHtml,
+        source: sourceHtml,
+        install: {
+          npx: npxInstallHtml,
+          pnpm: pnpmInstallHtml,
+          bun: bunInstallHtml,
+        },
+      },
       previewPath: docs.previewPath,
       previewExportName:
         docs.previewExportName ?? `${toPascalCase(item.name)}Preview`,
-      usage: await readText(usagePath),
+      usage,
       props: docs.props ?? [],
       subComponents: docs.subComponents ?? [],
     });
@@ -699,6 +754,17 @@ async function writeGeneratedRegistry(docsComponents) {
     description: ${JSON.stringify(component.description)},
     categories: ${JSON.stringify(component.categories ?? [])},
     sourcePath: ${JSON.stringify(component.sourcePath)},
+    sourceCode: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.sourceCode.trim())}${BACKTICK_TOKEN},
+    installCommands: ${JSON.stringify(component.installCommands, null, 4).replace(/^/gm, "    ").trimStart()},
+    highlighted: {
+      usage: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.highlighted.usage)}${BACKTICK_TOKEN},
+      source: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.highlighted.source)}${BACKTICK_TOKEN},
+      install: {
+        npx: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.highlighted.install.npx)}${BACKTICK_TOKEN},
+        pnpm: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.highlighted.install.pnpm)}${BACKTICK_TOKEN},
+        bun: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.highlighted.install.bun)}${BACKTICK_TOKEN},
+      },
+    },
     usage: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.usage.trim())}${BACKTICK_TOKEN},
     props: ${JSON.stringify(component.props, null, 4).replace(/^/gm, "    ").trimStart()},
     subComponents: ${JSON.stringify(component.subComponents, null, 4).replace(/^/gm, "    ").trimStart()},
@@ -723,26 +789,97 @@ export function getComponent(slug: string): ComponentMeta | undefined {
   );
 }
 
+async function writeGeneratedNavigation(docsComponents) {
+  const entries = docsComponents
+    .map(
+      (component) => `  {
+    slug: ${JSON.stringify(component.slug)},
+    name: ${JSON.stringify(component.name)},
+    description: ${JSON.stringify(component.description)},
+    categories: ${JSON.stringify(component.categories ?? [])},
+  }`,
+    )
+    .join(",\n");
+
+  const fileContents = `import type { ComponentNavMeta } from "@/lib/component-registry-schema";
+
+export const componentNavigation: ComponentNavMeta[] = [
+${entries}
+];
+`;
+
+  await writeText(GENERATED_NAV_PATH, fileContents);
+}
+
+async function writeGeneratedSetupDocs() {
+  const componentsJsonExample = `{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  // rest of the file
+  // ...
+  },
+  "registries": {
+    "${DEFAULT_REGISTRY_ALIAS}": "${process.env.NEXT_PUBLIC_REGISTRY_URL_TEMPLATE ?? `${DEFAULT_HOMEPAGE}/r/{name}.json`}"
+  }
+}`;
+
+  const installTabs = [
+    {
+      label: "npx",
+      title: "Install from registry",
+      code: buildInstallCommands("hero-background").npx,
+    },
+    {
+      label: "pnpm dlx",
+      title: "Install from registry",
+      code: buildInstallCommands("hero-background").pnpm,
+    },
+    {
+      label: "bunx",
+      title: "Install from registry",
+      code: buildInstallCommands("hero-background").bun,
+    },
+  ];
+
+  const [componentsJsonHtml, ...installHtml] = await Promise.all([
+    highlightCode(componentsJsonExample, "json"),
+    ...installTabs.map((tab) => highlightCode(tab.code, "bash")),
+  ]);
+
+  const fileContents = `export const docsSetup = {
+  componentsJsonExample: ${BACKTICK_TOKEN}${escapeTemplateLiteral(componentsJsonExample)}${BACKTICK_TOKEN},
+  componentsJsonHtml: ${BACKTICK_TOKEN}${escapeTemplateLiteral(componentsJsonHtml)}${BACKTICK_TOKEN},
+  installTabs: ${JSON.stringify(
+    installTabs.map((tab, index) => ({
+      ...tab,
+      highlightedHtml: installHtml[index],
+    })),
+    null,
+    2,
+  )},
+};
+`;
+
+  await writeText(
+    GENERATED_SETUP_PATH,
+    fileContents.replaceAll(BACKTICK_TOKEN, "`"),
+  );
+}
+
 async function writeGeneratedPreviews(docsComponents) {
   const componentsWithPreviews = docsComponents.filter(
     (component) => component.previewPath,
   );
 
-  const imports = componentsWithPreviews
-    .map(
-      (component) =>
-        `import { ${component.previewExportName} } from "@/${stripExtension(component.previewPath)}";`,
-    )
-    .join("\n");
-
   const previewMap = componentsWithPreviews
     .map(
       (component) =>
-        `  ${JSON.stringify(component.slug)}: ${component.previewExportName},`,
+        `  ${JSON.stringify(component.slug)}: dynamic(() => import("@/${stripExtension(component.previewPath)}").then((module) => ({ default: module.${component.previewExportName} }))),`,
     )
     .join("\n");
 
-  const fileContents = `${imports}
+  const fileContents = `"use client";
+
+import dynamic from "next/dynamic";
 
 const previews: Record<string, React.ComponentType> = {
 ${previewMap}
@@ -776,6 +913,8 @@ async function writeRegistryJson(items) {
 async function formatGeneratedFiles() {
   const targets = [
     toPosix(path.relative(ROOT, GENERATED_REGISTRY_PATH)),
+    toPosix(path.relative(ROOT, GENERATED_NAV_PATH)),
+    toPosix(path.relative(ROOT, GENERATED_SETUP_PATH)),
     toPosix(path.relative(ROOT, GENERATED_PREVIEWS_PATH)),
     toPosix(path.relative(ROOT, REGISTRY_JSON_PATH)),
   ]
@@ -801,6 +940,8 @@ async function generate() {
   const docsComponents = await buildDocsComponents(items);
 
   await writeGeneratedRegistry(docsComponents);
+  await writeGeneratedNavigation(docsComponents);
+  await writeGeneratedSetupDocs();
   await writeGeneratedPreviews(docsComponents);
   await writeRegistryJson(items);
   await formatGeneratedFiles();

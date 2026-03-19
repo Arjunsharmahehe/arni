@@ -1,4 +1,4 @@
-import type { PropDef, SubComponent } from "@/lib/component-registry";
+import type { PropDef, SubComponent } from "@/lib/component-registry-schema";
 
 export function PropsTable({
   title,

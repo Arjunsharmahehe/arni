@@ -33,26 +33,19 @@ export function CodePanel({
       return;
     }
 
-    const measure = () => {
+    const frameId = window.requestAnimationFrame(() => {
       const nextIsOverflowing = element.scrollHeight > collapsedHeight + 8;
       setIsOverflowing(nextIsOverflowing);
 
       if (!nextIsOverflowing) {
         setExpanded(false);
       }
-    };
-
-    measure();
-
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    window.addEventListener("resize", measure);
+    });
 
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
+      window.cancelAnimationFrame(frameId);
     };
-  }, [collapsedHeight]);
+  }, [collapsedHeight, highlightedHtml]);
 
   const shouldClamp = isOverflowing && !expanded;
 

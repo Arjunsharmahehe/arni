@@ -1,13 +1,19 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { notFound } from "next/navigation";
-import { codeToHtml } from "shiki";
 import { CodeTabs } from "@/components/docs/code-tabs";
 import { ComponentPreview } from "@/components/docs/component-preview";
 import { ComponentPreviewRenderer } from "@/components/docs/component-previews";
 import { PropsTable, SubComponentsTable } from "@/components/docs/props-table";
-import { getComponent } from "@/lib/component-registry";
-import { getInstallCommands } from "@/lib/registry-config";
+import {
+  getAllComponentSlugs,
+  getDocsComponentPageData,
+} from "@/lib/docs-content";
+
+export const dynamic = "force-static";
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return getAllComponentSlugs().map((slug: string) => ({ slug }));
+}
 
 export default async function ComponentPage({
   params,
@@ -15,70 +21,33 @@ export default async function ComponentPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const component = getComponent(slug);
+  const pageData = await getDocsComponentPageData(slug);
 
-  if (!component) {
+  if (!pageData) {
     notFound();
   }
 
-  const sourceCode = component.sourcePath
-    ? await readFile(path.join(process.cwd(), component.sourcePath), "utf8")
-    : component.code;
-
-  if (!sourceCode) {
-    notFound();
-  }
-
-  const installCommands = getInstallCommands(slug);
-
-  // Pre-highlight code on the server
-  const [
-    usageHtml,
-    sourceHtml,
-    npxInstallHtml,
-    pnpmInstallHtml,
-    bunInstallHtml,
-  ] = await Promise.all([
-    codeToHtml(component.usage.trim(), {
-      lang: "tsx",
-      theme: "github-dark-dimmed",
-    }),
-    codeToHtml(sourceCode.trim(), {
-      lang: "tsx",
-      theme: "github-dark-dimmed",
-    }),
-    codeToHtml(installCommands.npx, {
-      lang: "bash",
-      theme: "github-dark-dimmed",
-    }),
-    codeToHtml(installCommands.pnpm, {
-      lang: "bash",
-      theme: "github-dark-dimmed",
-    }),
-    codeToHtml(installCommands.bun, {
-      lang: "bash",
-      theme: "github-dark-dimmed",
-    }),
-  ]);
+  const { component, installCommands, installHtml, sourceCode, sourceHtml, usageHtml } =
+    pageData;
 
   const installTabs = [
     {
       label: "npx",
       title: "Terminal",
       code: installCommands.npx,
-      highlightedHtml: npxInstallHtml,
+      highlightedHtml: installHtml.npx,
     },
     {
       label: "pnpm dlx",
       title: "Terminal",
       code: installCommands.pnpm,
-      highlightedHtml: pnpmInstallHtml,
+      highlightedHtml: installHtml.pnpm,
     },
     {
       label: "bunx",
       title: "Terminal",
       code: installCommands.bun,
-      highlightedHtml: bunInstallHtml,
+      highlightedHtml: installHtml.bun,
     },
   ];
 
