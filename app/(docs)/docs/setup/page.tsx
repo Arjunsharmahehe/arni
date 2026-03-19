@@ -1,52 +1,14 @@
-import { codeToHtml } from "shiki";
 import { CodeTabs } from "@/components/docs/code-tabs";
 import {
   REGISTRY_ALIAS,
   REGISTRY_HOMEPAGE,
-  REGISTRY_URL_TEMPLATE,
 } from "@/lib/registry-config";
+import { docsSetup } from "@/lib/docs-setup.generated";
 
-const componentsJsonExample = `{
-  "$schema": "https://ui.shadcn.com/schema.json",
-  // rest of the file
-  // ...
-  },
-  "registries": {
-    "${REGISTRY_ALIAS}": "${REGISTRY_URL_TEMPLATE}"
-  }
-}`;
+export const dynamic = "force-static";
 
-const installTabs = [
-  {
-    label: "npx",
-    title: "Install from registry",
-    code: `npx shadcn@latest add ${REGISTRY_ALIAS}/hero-background`,
-  },
-  {
-    label: "pnpm dlx",
-    title: "Install from registry",
-    code: `pnpm dlx shadcn@latest add ${REGISTRY_ALIAS}/hero-background`,
-  },
-  {
-    label: "bunx",
-    title: "Install from registry",
-    code: `bunx --bun shadcn@latest add ${REGISTRY_ALIAS}/hero-background`,
-  },
-];
-
-export default async function SetupPage() {
-  const [componentsJsonHtml, ...installHtml] = await Promise.all([
-    codeToHtml(componentsJsonExample, {
-      lang: "json",
-      theme: "github-dark-dimmed",
-    }),
-    ...installTabs.map((tab) =>
-      codeToHtml(tab.code, {
-        lang: "bash",
-        theme: "github-dark-dimmed",
-      }),
-    ),
-  ]);
+export default function SetupPage() {
+  const { componentsJsonExample, componentsJsonHtml, installTabs } = docsSetup;
 
   return (
     <div className="mx-auto max-w-4xl space-y-12 px-8 py-12">
@@ -81,10 +43,7 @@ export default async function SetupPage() {
           2. Install a component from this registry
         </h2>
         <CodeTabs
-          tabs={installTabs.map((tab, index) => ({
-            ...tab,
-            highlightedHtml: installHtml[index],
-          }))}
+          tabs={installTabs}
         />
       </div>
 
