@@ -38,7 +38,8 @@ Do not hand-edit generated files unless explicitly debugging generation output.
 ### Registry source layout
 - Registry source files must live under `registry/base-vega/<slug>/...`.
 - Registry source should import other local registry components via `@/registry/base-vega/...`.
-- Avoid `@/components/...` imports inside registry source files.
+- Prefer `@/registry/base-vega/...` imports for local registry-to-registry dependencies.
+- Importing from `@/components/ui/...` is allowed in this repo when reusing shared UI primitives.
 
 ### Consumer install targets
 - `registry:ui` is used for UI components that install into `components/ui/...`.

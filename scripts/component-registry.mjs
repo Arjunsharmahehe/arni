@@ -502,8 +502,12 @@ async function validateItemDependencies({
       }
 
       if (specifier.startsWith("@/components/")) {
+        if (specifier.startsWith("@/components/ui/")) {
+          continue;
+        }
+
         errors.push(
-          `${itemLabel}: file ${file.path} imports ${specifier}. Use @/registry/base-vega/... imports inside registry source files.`,
+          `${itemLabel}: file ${file.path} imports ${specifier}. Use @/registry/base-vega/... imports for local registry dependencies, or @/components/ui/... for shared UI primitives.`,
         );
         continue;
       }

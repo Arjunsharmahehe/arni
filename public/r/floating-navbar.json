@@ -1,0 +1,93 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "floating-navbar",
+  "title": "Floating Navbar",
+  "description": "A reusable floating navigation bar with preserved motion behavior, array-driven links, and flexible brand configuration for logo or text.",
+  "dependencies": [
+    "lucide-react",
+    "motion"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/base-vega/floating-navbar/floating-navbar.tsx",
+      "content": "\"use client\";\n\nimport { ArrowRight, Menu } from \"lucide-react\";\nimport { motion } from \"motion/react\";\nimport Image from \"next/image\";\nimport Link from \"next/link\";\nimport {\n  type HTMLAttributeAnchorTarget,\n  type ReactNode,\n  useEffect,\n  useState,\n} from \"react\";\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Sheet,\n  SheetClose,\n  SheetContent,\n  SheetTrigger,\n} from \"@/components/ui/sheet\";\nimport { cn } from \"@/lib/utils\";\n\nexport type FloatingNavbarItem = {\n  href: string;\n  label: ReactNode;\n  mobileLabel?: ReactNode;\n  className?: string;\n  mobileClassName?: string;\n  target?: HTMLAttributeAnchorTarget;\n  rel?: string;\n};\n\nexport type FloatingNavbarBrandLogoConfig = {\n  src: string;\n  alt: string;\n  darkSrc?: string;\n  width?: number;\n  height?: number;\n  className?: string;\n  priority?: boolean;\n};\n\nexport type FloatingNavbarBrand = {\n  href?: string;\n  logo?: FloatingNavbarBrandLogoConfig;\n  text?: ReactNode;\n  content?: ReactNode;\n  className?: string;\n  textClassName?: string;\n};\n\nexport type FloatingNavbarCallToAction = {\n  href: string;\n  label: ReactNode;\n  icon?: ReactNode;\n  className?: string;\n  target?: HTMLAttributeAnchorTarget;\n  rel?: string;\n};\n\nexport type FloatingNavbarProps = {\n  items: FloatingNavbarItem[];\n  brand?: FloatingNavbarBrand;\n  callToAction?: FloatingNavbarCallToAction;\n  leadingSlot?: ReactNode;\n  trailingSlot?: ReactNode;\n  className?: string;\n  contentClassName?: string;\n  navClassName?: string;\n  navItemClassName?: string;\n  mobileSheetClassName?: string;\n  mobileNavClassName?: string;\n  mobileNavItemClassName?: string;\n  mobileSide?: \"top\" | \"right\" | \"bottom\" | \"left\";\n  menuButtonLabel?: string;\n};\n\nconst DEFAULT_NAV_CLASS =\n  \"hidden md:flex items-center gap-8 text-sm font-medium\";\nconst DEFAULT_NAV_ITEM_CLASS = \"hover:text-primary transition-colors\";\nconst DEFAULT_CTA_CLASS =\n  \"hidden md:flex group items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg font-medium transition-all\";\nconst DEFAULT_MOBILE_ITEM_CLASS =\n  \"text-2xl font-medium hover:text-primary transition-colors\";\n\nexport function FloatingNavbarBrandLogo({\n  src,\n  darkSrc,\n  alt,\n  width = 140,\n  height = 28,\n  className,\n  priority,\n}: FloatingNavbarBrandLogoConfig) {\n  if (!darkSrc) {\n    return (\n      <Image\n        src={src}\n        alt={alt}\n        width={width}\n        height={height}\n        priority={priority}\n        className={cn(\"object-contain\", className)}\n      />\n    );\n  }\n\n  return (\n    <>\n      <Image\n        src={src}\n        alt={alt}\n        width={width}\n        height={height}\n        priority={priority}\n        className={cn(\"object-contain dark:hidden\", className)}\n      />\n      <Image\n        src={darkSrc}\n        alt={alt}\n        width={width}\n        height={height}\n        priority={priority}\n        className={cn(\"hidden object-contain dark:block\", className)}\n      />\n    </>\n  );\n}\n\nexport function FloatingNavbarBrandText({\n  children,\n  className,\n}: {\n  children: ReactNode;\n  className?: string;\n}) {\n  return (\n    <span className={cn(\"text-base font-semibold\", className)}>{children}</span>\n  );\n}\n\nexport function FloatingNavbar({\n  items,\n  brand,\n  callToAction,\n  leadingSlot,\n  trailingSlot,\n  className,\n  contentClassName,\n  navClassName,\n  navItemClassName,\n  mobileSheetClassName,\n  mobileNavClassName,\n  mobileNavItemClassName,\n  mobileSide = \"right\",\n  menuButtonLabel = \"Open menu\",\n}: FloatingNavbarProps) {\n  const [scrolled, setScrolled] = useState(false);\n\n  useEffect(() => {\n    const handleScroll = () => {\n      setScrolled(window.scrollY > 50);\n    };\n\n    window.addEventListener(\"scroll\", handleScroll);\n    return () => window.removeEventListener(\"scroll\", handleScroll);\n  }, []);\n\n  return (\n    <motion.nav\n      initial={{ maxWidth: \"90%\" }}\n      animate={{\n        maxWidth: scrolled ? \"100%\" : \"90%\",\n        top: scrolled ? \"8px\" : \"28px\",\n      }}\n      transition={{ duration: 0.3, ease: \"easeInOut\" }}\n      className={cn(\n        \"fixed left-4 right-4 z-50 mx-auto rounded-xl border border-border/40 bg-background/80 backdrop-blur-md md:top-6 md:right-6 md:left-6\",\n        className,\n      )}\n    >\n      <div\n        className={cn(\n          \"mx-auto flex items-center justify-between px-4 py-3\",\n          contentClassName,\n        )}\n      >\n        <Link\n          href={brand?.href ?? \"/\"}\n          className={cn(\n            \"flex items-center gap-2 font-bold tracking-tight\",\n            brand?.className,\n          )}\n        >\n          {brand?.content ? (\n            brand.content\n          ) : (\n            <>\n              {brand?.logo ? <FloatingNavbarBrandLogo {...brand.logo} /> : null}\n              {brand?.text || !brand?.logo ? (\n                <FloatingNavbarBrandText className={brand?.textClassName}>\n                  {brand?.text ?? \"Brand\"}\n                </FloatingNavbarBrandText>\n              ) : null}\n            </>\n          )}\n        </Link>\n\n        <nav className={cn(DEFAULT_NAV_CLASS, navClassName)}>\n          {items.map((item, index) => (\n            <Link\n              key={`${item.href}-${index}`}\n              href={item.href}\n              target={item.target}\n              rel={item.rel}\n              className={cn(\n                DEFAULT_NAV_ITEM_CLASS,\n                navItemClassName,\n                item.className,\n              )}\n            >\n              {item.label}\n            </Link>\n          ))}\n        </nav>\n\n        <div className=\"flex items-center gap-4\">\n          {leadingSlot}\n          {callToAction ? (\n            <Link\n              href={callToAction.href}\n              target={callToAction.target}\n              rel={callToAction.rel}\n              className={cn(DEFAULT_CTA_CLASS, callToAction.className)}\n            >\n              <span>{callToAction.label}</span>\n              {callToAction.icon ?? (\n                <ArrowRight\n                  className=\"transition-transform group-hover:translate-x-1\"\n                  size={16}\n                />\n              )}\n            </Link>\n          ) : null}\n          {trailingSlot}\n\n          <Sheet>\n            <SheetTrigger\n              render={\n                <Button\n                  variant=\"ghost\"\n                  size=\"icon\"\n                  className=\"md:hidden\"\n                  aria-label={menuButtonLabel}\n                >\n                  <Menu size={24} />\n                </Button>\n              }\n            />\n            <SheetContent\n              side={mobileSide}\n              className={cn(\"pt-24 pl-8\", mobileSheetClassName)}\n            >\n              <nav className={cn(\"flex flex-col gap-6\", mobileNavClassName)}>\n                {items.map((item, index) => (\n                  <SheetClose key={`${item.href}-mobile-${index}`}>\n                    <Link\n                      href={item.href}\n                      target={item.target}\n                      rel={item.rel}\n                      className={cn(\n                        DEFAULT_MOBILE_ITEM_CLASS,\n                        mobileNavItemClassName,\n                        item.mobileClassName,\n                      )}\n                    >\n                      {item.mobileLabel ?? item.label}\n                    </Link>\n                  </SheetClose>\n                ))}\n                {callToAction ? (\n                  <SheetClose>\n                    <Link\n                      href={callToAction.href}\n                      target={callToAction.target}\n                      rel={callToAction.rel}\n                      className={cn(\n                        DEFAULT_MOBILE_ITEM_CLASS,\n                        mobileNavItemClassName,\n                        callToAction.className,\n                      )}\n                    >\n                      {callToAction.label}\n                    </Link>\n                  </SheetClose>\n                ) : null}\n              </nav>\n            </SheetContent>\n          </Sheet>\n        </div>\n      </div>\n    </motion.nav>\n  );\n}\n\nexport const Navbar = FloatingNavbar;\n",
+      "type": "registry:ui",
+      "target": "components/ui/floating-navbar.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/floating-navbar/preview.tsx",
+      "previewExportName": "FloatingNavbarPreview",
+      "usagePath": "registry/base-vega/floating-navbar/usage.tsx",
+      "sourcePath": "registry/base-vega/floating-navbar/floating-navbar.tsx",
+      "props": [
+        {
+          "name": "items",
+          "type": "FloatingNavbarItem[]",
+          "description": "Array of link objects used to render desktop and mobile navigation"
+        },
+        {
+          "name": "brand",
+          "type": "FloatingNavbarBrand",
+          "description": "Brand configuration supporting logo, text, or custom brand content"
+        },
+        {
+          "name": "callToAction",
+          "type": "FloatingNavbarCallToAction",
+          "description": "Optional desktop CTA button and matching mobile CTA link"
+        },
+        {
+          "name": "leadingSlot",
+          "type": "React.ReactNode",
+          "description": "Optional node rendered before the CTA area"
+        },
+        {
+          "name": "trailingSlot",
+          "type": "React.ReactNode",
+          "description": "Optional node rendered after the CTA area"
+        }
+      ],
+      "subComponents": [
+        {
+          "name": "FloatingNavbarBrandLogo",
+          "description": "Renders brand logo with optional dark mode source",
+          "props": [
+            {
+              "name": "src",
+              "type": "string",
+              "description": "Primary logo source"
+            },
+            {
+              "name": "darkSrc",
+              "type": "string",
+              "description": "Optional dark mode logo source"
+            },
+            {
+              "name": "alt",
+              "type": "string",
+              "description": "Accessible logo description"
+            }
+          ]
+        },
+        {
+          "name": "FloatingNavbarBrandText",
+          "description": "Renders brand text when no logo is used",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Brand copy rendered in the navbar"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "categories": [
+    "navigation",
+    "marketing"
+  ],
+  "type": "registry:component"
+}

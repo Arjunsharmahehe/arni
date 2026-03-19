@@ -1,0 +1,85 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "floating-navbar",
+  "type": "registry:component",
+  "title": "Floating Navbar",
+  "description": "A reusable floating navigation bar with preserved motion behavior, array-driven links, and flexible brand configuration for logo or text.",
+  "dependencies": ["lucide-react", "motion"],
+  "categories": ["navigation", "marketing"],
+  "files": [
+    {
+      "path": "registry/base-vega/floating-navbar/floating-navbar.tsx",
+      "type": "registry:ui",
+      "target": "components/ui/floating-navbar.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/floating-navbar/preview.tsx",
+      "previewExportName": "FloatingNavbarPreview",
+      "usagePath": "registry/base-vega/floating-navbar/usage.tsx",
+      "sourcePath": "registry/base-vega/floating-navbar/floating-navbar.tsx",
+      "props": [
+        {
+          "name": "items",
+          "type": "FloatingNavbarItem[]",
+          "description": "Array of link objects used to render desktop and mobile navigation"
+        },
+        {
+          "name": "brand",
+          "type": "FloatingNavbarBrand",
+          "description": "Brand configuration supporting logo, text, or custom brand content"
+        },
+        {
+          "name": "callToAction",
+          "type": "FloatingNavbarCallToAction",
+          "description": "Optional desktop CTA button and matching mobile CTA link"
+        },
+        {
+          "name": "leadingSlot",
+          "type": "React.ReactNode",
+          "description": "Optional node rendered before the CTA area"
+        },
+        {
+          "name": "trailingSlot",
+          "type": "React.ReactNode",
+          "description": "Optional node rendered after the CTA area"
+        }
+      ],
+      "subComponents": [
+        {
+          "name": "FloatingNavbarBrandLogo",
+          "description": "Renders brand logo with optional dark mode source",
+          "props": [
+            {
+              "name": "src",
+              "type": "string",
+              "description": "Primary logo source"
+            },
+            {
+              "name": "darkSrc",
+              "type": "string",
+              "description": "Optional dark mode logo source"
+            },
+            {
+              "name": "alt",
+              "type": "string",
+              "description": "Accessible logo description"
+            }
+          ]
+        },
+        {
+          "name": "FloatingNavbarBrandText",
+          "description": "Renders brand text when no logo is used",
+          "props": [
+            {
+              "name": "children",
+              "type": "React.ReactNode",
+              "description": "Brand copy rendered in the navbar"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

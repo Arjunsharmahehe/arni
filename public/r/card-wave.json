@@ -3,7 +3,9 @@
   "name": "card-wave",
   "title": "Card Wave",
   "description": "A tastefull svg with interactive hover effects to make the boring cards interesting",
-  "dependencies": ["motion"],
+  "dependencies": [
+    "motion"
+  ],
   "registryDependencies": [],
   "files": [
     {
@@ -54,6 +56,9 @@
       "subComponents": []
     }
   },
-  "categories": ["svg", "motion"],
+  "categories": [
+    "svg",
+    "motion"
+  ],
   "type": "registry:component"
 }

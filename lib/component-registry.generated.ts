@@ -247,6 +247,122 @@ const highlightRules = [
     ],
   },
   {
+    slug: "floating-navbar",
+    name: "Floating Navbar",
+    description:
+      "A reusable floating navigation bar with preserved motion behavior, array-driven links, and flexible brand configuration for logo or text.",
+    sourcePath: "registry/base-vega/floating-navbar/floating-navbar.tsx",
+    usage: `import Image from "next/image";
+import {
+  FloatingNavbar,
+  type FloatingNavbarItem,
+} from "@/registry/base-vega/floating-navbar/floating-navbar";
+
+const navItems: FloatingNavbarItem[] = [
+  { href: "/about", label: "About" },
+  { href: "/services", label: "Services" },
+  { href: "/case-studies", label: "Case Studies" },
+];
+
+// Logo branding variant
+<FloatingNavbar
+  items={navItems}
+  brand={{
+    href: "/",
+    logo: {
+      src: "/logo/ss-black.png",
+      darkSrc: "/logo/ss-white.png",
+      alt: "Studio logo",
+      width: 140,
+      height: 28,
+    },
+  }}
+  leadingSlot={
+    <Image
+      alt="Indian flag"
+      src="/logo/india.png"
+      height={20}
+      width={20}
+      className="object-cover"
+    />
+  }
+  callToAction={{ href: "/contact", label: "Contact Us" }}
+/>;
+
+// Text branding variant
+<FloatingNavbar
+  items={navItems}
+  brand={{
+    href: "/",
+    text: "Acme Studio",
+  }}
+  callToAction={{ href: "/contact", label: "Book a Call" }}
+/>;`,
+    props: [
+      {
+        name: "items",
+        type: "FloatingNavbarItem[]",
+        description:
+          "Array of link objects used to render desktop and mobile navigation",
+      },
+      {
+        name: "brand",
+        type: "FloatingNavbarBrand",
+        description:
+          "Brand configuration supporting logo, text, or custom brand content",
+      },
+      {
+        name: "callToAction",
+        type: "FloatingNavbarCallToAction",
+        description: "Optional desktop CTA button and matching mobile CTA link",
+      },
+      {
+        name: "leadingSlot",
+        type: "React.ReactNode",
+        description: "Optional node rendered before the CTA area",
+      },
+      {
+        name: "trailingSlot",
+        type: "React.ReactNode",
+        description: "Optional node rendered after the CTA area",
+      },
+    ],
+    subComponents: [
+      {
+        name: "FloatingNavbarBrandLogo",
+        description: "Renders brand logo with optional dark mode source",
+        props: [
+          {
+            name: "src",
+            type: "string",
+            description: "Primary logo source",
+          },
+          {
+            name: "darkSrc",
+            type: "string",
+            description: "Optional dark mode logo source",
+          },
+          {
+            name: "alt",
+            type: "string",
+            description: "Accessible logo description",
+          },
+        ],
+      },
+      {
+        name: "FloatingNavbarBrandText",
+        description: "Renders brand text when no logo is used",
+        props: [
+          {
+            name: "children",
+            type: "React.ReactNode",
+            description: "Brand copy rendered in the navbar",
+          },
+        ],
+      },
+    ],
+  },
+  {
     slug: "hero-background",
     name: "Hero Background",
     description:
@@ -363,7 +479,13 @@ import {
 <LinearCard>
   <LinearCardHeader>FIG 0.1</LinearCardHeader>
   <LinearCardImageContainer>
-    <Image src="/your-image.png" alt="Card image" fill className="cover" />
+    <Image
+      src="/your-image.png"
+      alt="Card image"
+      fill
+      sizes="(max-width: 768px) 100vw, 50vw"
+      className="cover"
+    />
   </LinearCardImageContainer>
   <LinearCardBody>
     <LinearCardHeading>Designed for speed</LinearCardHeading>
