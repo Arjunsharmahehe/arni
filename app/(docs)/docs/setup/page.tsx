@@ -1,8 +1,5 @@
 import { CodeTabs } from "@/components/docs/code-tabs";
-import {
-  REGISTRY_ALIAS,
-  REGISTRY_HOMEPAGE,
-} from "@/lib/registry-config";
+import { REGISTRY_ALIAS, REGISTRY_HOMEPAGE } from "@/lib/registry-config";
 import { docsSetup } from "@/lib/docs-setup.generated";
 
 export const dynamic = "force-static";
@@ -42,9 +39,7 @@ export default function SetupPage() {
         <h2 className="text-sm font-mono font-medium uppercase tracking-wider text-muted-foreground">
           2. Install a component from this registry
         </h2>
-        <CodeTabs
-          tabs={installTabs}
-        />
+        <CodeTabs tabs={installTabs} />
       </div>
 
       <div className="space-y-4 rounded-md border border-border bg-muted/20 p-5">

@@ -2,21 +2,9 @@
 
 import { Terminal } from "@/components/ui/terminal";
 
-export default function Page() {
-  return (
-    <div className="w-full min-h-screen">
-      <div className="max-w-3xl flex flex-col w-full mx-auto px-4 gap-12 py-10">
-        <TerminalDemo />
-        <WindowsTerminalDemo />
-        <HeaderlessTerminalDemo />
-      </div>
-    </div>
-  );
-}
-
 export function TerminalDemo() {
   return (
-    <section className="w-full">
+    <section className="w-full py-10 md:py-20">
       <Terminal
         commands={[
           "npx shadcn@latest init",
@@ -55,7 +43,7 @@ export function WindowsTerminalDemo() {
         1: ["Compiled successfully"],
       }}
       route="C:\\Users\\you\\project"
-      windowName="Powershell"
+      windowName="Windows Terminal"
       windowNameAlign="left"
       variant="windows"
     />

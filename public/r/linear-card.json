@@ -4,9 +4,7 @@
   "title": "Linear Card",
   "description": "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
   "dependencies": [],
-  "registryDependencies": [
-    "@arni/card-wave"
-  ],
+  "registryDependencies": ["@arni/card-wave"],
   "files": [
     {
       "path": "registry/base-vega/linear-card/linear-card.tsx",
@@ -104,9 +102,6 @@
       ]
     }
   },
-  "categories": [
-    "card",
-    "marketing"
-  ],
+  "categories": ["card", "marketing"],
   "type": "registry:block"
 }

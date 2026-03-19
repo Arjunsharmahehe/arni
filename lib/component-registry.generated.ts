@@ -3440,6 +3440,1008 @@ import {
       },
     ],
   },
+  {
+    slug: "terminal",
+    name: "Terminal",
+    description:
+      "A procedural terminal playback component with typed commands, line-by-line output reveals, optional in-view start, and macOS, Windows, and Linux window variants.",
+    categories: ["code", "marketing"],
+    sourcePath: "registry/base-vega/terminal/terminal.tsx",
+    sourceCode: `"use client";
+
+import { motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { TerminalIcon } from "lucide-react";
+
+export type TerminalVariant = "mac" | "windows" | "linux";
+export type TerminalWindowNameAlign = "left" | "center" | "right";
+export type TerminalBackgroundVariant = "solid" | "gradient";
+
+export interface TerminalProps {
+  commands: string[];
+  outputs?: Record<number, string[]>;
+  route?: string;
+  windowName?: string;
+  windowNameAlign?: TerminalWindowNameAlign;
+  showWindowPane?: boolean;
+  backgroundVariant?: TerminalBackgroundVariant;
+  variant?: TerminalVariant;
+  typingSpeed?: number;
+  delayBetweenCommands?: number;
+  outputLineDelay?: number;
+  playOnInView?: boolean;
+  inViewMargin?: string;
+  className?: string;
+  contentClassName?: string;
+}
+
+type TerminalHistoryEntry = {
+  id: string;
+  kind: "command" | "output";
+  text: string;
+};
+
+type TerminalPhase = "idle" | "typing" | "output" | "delay" | "done";
+
+const PROMPT_SYMBOL: Record<TerminalVariant, string> = {
+  linux: "$",
+  mac: "$",
+  windows: ">",
+};
+
+const WINDOW_ALIGN_CLASS: Record<TerminalWindowNameAlign, string> = {
+  center: "text-center",
+  left: "text-left",
+  right: "text-right",
+};
+
+export function Terminal({
+  commands,
+  outputs = {},
+  route = "~/projects/nextjs",
+  windowName = "bash",
+  windowNameAlign = "center",
+  showWindowPane = true,
+  backgroundVariant = "solid",
+  variant = "mac",
+  typingSpeed = 45,
+  delayBetweenCommands = 1000,
+  outputLineDelay = 130,
+  playOnInView = false,
+  inViewMargin = "0px 0px -10% 0px",
+  className,
+  contentClassName,
+}: TerminalProps) {
+  const [history, setHistory] = useState<TerminalHistoryEntry[]>([]);
+  const [currentCommandIndex, setCurrentCommandIndex] = useState(0);
+  const [typedChars, setTypedChars] = useState(0);
+  const [visibleOutputLines, setVisibleOutputLines] = useState(0);
+  const [hasStarted, setHasStarted] = useState(!playOnInView);
+  const [phase, setPhase] = useState<TerminalPhase>(() => {
+    if (commands.length === 0) {
+      return "done";
+    }
+
+    return playOnInView ? "idle" : "typing";
+  });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const activeCommand = commands[currentCommandIndex] ?? "";
+  const activeOutput = outputs[currentCommandIndex] ?? [];
+  const typedCommand = activeCommand.slice(0, typedChars);
+  const finalizedCurrentCommand = useMemo(
+    () => history.some((entry) => entry.id === \`cmd-\${currentCommandIndex}\`),
+    [currentCommandIndex, history],
+  );
+
+  useEffect(() => {
+    if (!playOnInView || hasStarted || commands.length === 0) {
+      return;
+    }
+
+    const node = rootRef.current;
+
+    if (!node) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        setHasStarted(true);
+        setPhase("typing");
+        observer.disconnect();
+      },
+      { rootMargin: inViewMargin, threshold: 0.25 },
+    );
+
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, [commands.length, hasStarted, inViewMargin, playOnInView]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
+  });
+
+  useEffect(() => {
+    if (!hasStarted || phase === "idle" || phase === "done") {
+      return;
+    }
+
+    const timeout =
+      phase === "typing"
+        ? window.setTimeout(() => {
+            if (typedChars < activeCommand.length) {
+              setTypedChars((current) => current + 1);
+              return;
+            }
+
+            if (activeOutput.length > 0) {
+              setPhase("output");
+              return;
+            }
+
+            setPhase("delay");
+          }, typingSpeed)
+        : phase === "output"
+          ? window.setTimeout(() => {
+              if (visibleOutputLines < activeOutput.length) {
+                setVisibleOutputLines((current) => current + 1);
+                return;
+              }
+
+              setPhase("delay");
+            }, outputLineDelay)
+          : window.setTimeout(() => {
+              setHistory((previous) => {
+                const next = [...previous];
+                const commandId = \`cmd-\${currentCommandIndex}\`;
+
+                if (!next.some((entry) => entry.id === commandId)) {
+                  next.push({
+                    id: commandId,
+                    kind: "command",
+                    text: activeCommand,
+                  });
+                }
+
+                activeOutput.forEach((line, lineIndex) => {
+                  const outputId = \`out-\${currentCommandIndex}-\${lineIndex}\`;
+
+                  if (!next.some((entry) => entry.id === outputId)) {
+                    next.push({
+                      id: outputId,
+                      kind: "output",
+                      text: line,
+                    });
+                  }
+                });
+
+                return next;
+              });
+
+              if (currentCommandIndex >= commands.length - 1) {
+                setPhase("done");
+                return;
+              }
+
+              setCurrentCommandIndex((current) => current + 1);
+              setTypedChars(0);
+              setVisibleOutputLines(0);
+              setPhase("typing");
+            }, delayBetweenCommands);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    activeCommand,
+    activeOutput,
+    commands.length,
+    currentCommandIndex,
+    delayBetweenCommands,
+    hasStarted,
+    outputLineDelay,
+    phase,
+    typedChars,
+    typingSpeed,
+    visibleOutputLines,
+  ]);
+
+  const liveOutputEntries = useMemo(() => {
+    const seen = new Map<string, number>();
+
+    return activeOutput.slice(0, visibleOutputLines).map((line) => {
+      const count = (seen.get(line) ?? 0) + 1;
+      seen.set(line, count);
+
+      return {
+        id: \`live-out-\${currentCommandIndex}-\${line}-\${count}\`,
+        line,
+      };
+    });
+  }, [activeOutput, currentCommandIndex, visibleOutputLines]);
+
+  return (
+    <div
+      ref={rootRef}
+      className={cn(
+        "w-full overflow-hidden rounded-md border border-neutral-700/70 bg-neutral-950 shadow-[0_24px_80px_rgba(0,0,0,0.45)]",
+        className,
+      )}
+    >
+      {showWindowPane ? (
+        <TerminalWindowPane
+          variant={variant}
+          windowName={windowName}
+          windowNameAlign={windowNameAlign}
+        />
+      ) : null}
+
+      <div
+        ref={scrollContainerRef}
+        className={cn(
+          "h-[360px] overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
+          backgroundVariant === "gradient"
+            ? "bg-[radial-gradient(circle_at_top,_rgba(64,64,64,0.28),_rgba(10,10,10,0.96)_42%)]"
+            : "bg-neutral-950",
+          contentClassName,
+        )}
+      >
+        <div className="space-y-0.5">
+          {history.map((entry) =>
+            entry.kind === "command" ? (
+              <CommandLine
+                key={entry.id}
+                route={route}
+                promptSymbol={PROMPT_SYMBOL[variant]}
+                command={entry.text}
+              />
+            ) : (
+              <OutputLine key={entry.id} line={entry.text} />
+            ),
+          )}
+
+          {hasStarted && phase !== "done" && !finalizedCurrentCommand ? (
+            <CommandLine
+              route={route}
+              promptSymbol={PROMPT_SYMBOL[variant]}
+              command={typedCommand}
+              cursor
+            />
+          ) : null}
+
+          {phase !== "typing"
+            ? liveOutputEntries.map((entry) => (
+                <OutputLine key={entry.id} line={entry.line} />
+              ))
+            : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TerminalWindowPane({
+  variant,
+  windowName,
+  windowNameAlign,
+}: {
+  variant: TerminalVariant;
+  windowName: string;
+  windowNameAlign: TerminalWindowNameAlign;
+}) {
+  if (variant === "mac") {
+    return (
+      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 px-3 py-2.5">
+        <div className="flex w-16 items-center gap-1.5">
+          <span className="size-3 rounded-full bg-[#ff5f56]" />
+          <span className="size-3 rounded-full bg-[#ffbd2e]" />
+          <span className="size-3 rounded-full bg-[#27c93f]" />
+        </div>
+        <span
+          className={cn(
+            "grow truncate text-xs font-medium text-neutral-300",
+            WINDOW_ALIGN_CLASS[windowNameAlign],
+          )}
+        >
+          {windowName}
+        </span>
+        <div className="w-16" />
+      </div>
+    );
+  }
+
+  if (variant === "windows") {
+    return (
+      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 px-2 py-2">
+        <div className="bg-blue-600 rounded-xs p-0.5">
+          <TerminalIcon className="size-4" />
+        </div>
+        <span
+          className={cn(
+            "mx-3 grow truncate text-xs font-medium text-neutral-200",
+            WINDOW_ALIGN_CLASS[windowNameAlign],
+          )}
+        >
+          {windowName}
+        </span>
+        <div className="flex items-center text-[10px] text-neutral-300">
+          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
+            -
+          </span>
+          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
+            □
+          </span>
+          <span className="grid h-6 w-8 place-items-center hover:bg-red-600/80">
+            ×
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center border-b border-neutral-700 bg-[#1f2937] px-3 py-2">
+      <div className="flex w-16 items-center gap-1">
+        <span className="h-2.5 w-3 rounded-sm bg-neutral-300" />
+        <span className="h-2.5 w-3 rounded-sm bg-neutral-500" />
+        <span className="h-2.5 w-3 rounded-sm bg-neutral-700" />
+      </div>
+      <span
+        className={cn(
+          "grow truncate text-xs font-medium text-neutral-200",
+          WINDOW_ALIGN_CLASS[windowNameAlign],
+        )}
+      >
+        {windowName}
+      </span>
+      <div className="w-16" />
+    </div>
+  );
+}
+
+function CommandLine({
+  route,
+  promptSymbol,
+  command,
+  cursor = false,
+}: {
+  route: string;
+  promptSymbol: string;
+  command: string;
+  cursor?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-start gap-2">
+      <span className="text-emerald-400">{route}</span>
+      <span className="text-emerald-500">{promptSymbol}</span>
+      <span className="break-all text-neutral-200">
+        {command}
+        {cursor ? (
+          <motion.span
+            aria-hidden
+            className="ml-0.5 inline-block h-[1.1em] w-[0.58em] translate-y-1 bg-neutral-100"
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 0.85, repeat: Infinity, ease: "linear" }}
+          />
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+function OutputLine({ line }: { line: string }) {
+  return <p className="whitespace-pre-wrap text-neutral-400">{line}</p>;
+}`,
+    installCommands: {
+      npx: "npx shadcn@latest add @arni/terminal",
+      pnpm: "pnpm dlx shadcn@latest add @arni/terminal",
+      bun: "bunx --bun shadcn@latest add @arni/terminal",
+    },
+    highlighted: {
+      usage: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#96D0FF">"use client"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { Terminal } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/components/ui/terminal"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> function</span><span style="color:#DCBDFB"> TerminalDemo</span><span style="color:#ADBAC7">() {</span></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">section</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"w-full py-10 md:py-20"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">Terminal</span></span>
+<span class="line"><span style="color:#6CB6FF">        commands</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span></span>
+<span class="line"><span style="color:#96D0FF">          "npx shadcn@latest init"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "npm install motion"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "npx shadcn@latest add button card"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "Term Deez Nuts"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">        ]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        outputs</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#6CB6FF">          0</span><span style="color:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#96D0FF">            "✔ Preflight checks passed."</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">            "✔ Created components.json"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">            "✔ Initialized project."</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          ],</span></span>
+<span class="line"><span style="color:#6CB6FF">          1</span><span style="color:#ADBAC7">: [</span><span style="color:#96D0FF">"added 1 package in 2s"</span><span style="color:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#6CB6FF">          2</span><span style="color:#ADBAC7">: [</span><span style="color:#96D0FF">"✔ Done. Installed button, card."</span><span style="color:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#ADBAC7">        }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        route</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"~/workspace/vega"</span></span>
+<span class="line"><span style="color:#6CB6FF">        windowName</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bash - setup"</span></span>
+<span class="line"><span style="color:#6CB6FF">        variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"mac"</span></span>
+<span class="line"><span style="color:#6CB6FF">        windowNameAlign</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"center"</span></span>
+<span class="line"><span style="color:#6CB6FF">        backgroundVariant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"gradient"</span></span>
+<span class="line"><span style="color:#6CB6FF">        playOnInView</span></span>
+<span class="line"><span style="color:#6CB6FF">        typingSpeed</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">45</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        delayBetweenCommands</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">1000</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      /></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;/</span><span style="color:#8DDB8C">section</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> function</span><span style="color:#DCBDFB"> WindowsTerminalDemo</span><span style="color:#ADBAC7">() {</span></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">Terminal</span></span>
+<span class="line"><span style="color:#6CB6FF">      commands</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span><span style="color:#96D0FF">"pnpm dev"</span><span style="color:#ADBAC7">, </span><span style="color:#96D0FF">"pnpm build"</span><span style="color:#ADBAC7">]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      outputs</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#6CB6FF">        0</span><span style="color:#ADBAC7">: [</span><span style="color:#96D0FF">"Ready in 1.8s"</span><span style="color:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#6CB6FF">        1</span><span style="color:#ADBAC7">: [</span><span style="color:#96D0FF">"Compiled successfully"</span><span style="color:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#ADBAC7">      }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      route</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"C:\\\\Users\\\\you\\\\project"</span></span>
+<span class="line"><span style="color:#6CB6FF">      windowName</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Windows Terminal"</span></span>
+<span class="line"><span style="color:#6CB6FF">      windowNameAlign</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"left"</span></span>
+<span class="line"><span style="color:#6CB6FF">      variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"windows"</span></span>
+<span class="line"><span style="color:#ADBAC7">    /></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> function</span><span style="color:#DCBDFB"> HeaderlessTerminalDemo</span><span style="color:#ADBAC7">() {</span></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">Terminal</span></span>
+<span class="line"><span style="color:#6CB6FF">      commands</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span><span style="color:#96D0FF">"docker compose up"</span><span style="color:#ADBAC7">]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      outputs</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#6CB6FF">        0</span><span style="color:#ADBAC7">: [</span><span style="color:#96D0FF">"[+] Running 6/6"</span><span style="color:#ADBAC7">, </span><span style="color:#96D0FF">"api-1  | listening on :3000"</span><span style="color:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#ADBAC7">      }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      route</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"~/infra/local"</span></span>
+<span class="line"><span style="color:#6CB6FF">      showWindowPane</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">false</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"linux"</span></span>
+<span class="line"><span style="color:#ADBAC7">    /></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span></code></pre>`,
+      source: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#96D0FF">"use client"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { motion } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "motion/react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useEffect, useMemo, useRef, useState } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { cn } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/lib/utils"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { TerminalIcon } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalVariant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "mac"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "windows"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "linux"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalWindowNameAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "left"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "center"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "right"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalBackgroundVariant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "solid"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "gradient"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> interface</span><span style="color:#F69D50"> TerminalProps</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F69D50">  commands</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#F69D50">  outputs</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> Record</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#6CB6FF">number</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">[]>;</span></span>
+<span class="line"><span style="color:#F69D50">  route</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  windowName</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  windowNameAlign</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> TerminalWindowNameAlign</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  showWindowPane</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  backgroundVariant</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> TerminalBackgroundVariant</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  variant</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> TerminalVariant</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  typingSpeed</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> number</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  delayBetweenCommands</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> number</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  outputLineDelay</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> number</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  playOnInView</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  inViewMargin</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  className</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  contentClassName</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">type</span><span style="color:#F69D50"> TerminalHistoryEntry</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F69D50">  id</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  kind</span><span style="color:#F47067">:</span><span style="color:#96D0FF"> "command"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "output"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  text</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">type</span><span style="color:#F69D50"> TerminalPhase</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "idle"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "typing"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "output"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "delay"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "done"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">const</span><span style="color:#6CB6FF"> PROMPT_SYMBOL</span><span style="color:#F47067">:</span><span style="color:#F69D50"> Record</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">TerminalVariant</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">> </span><span style="color:#F47067">=</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">  linux: </span><span style="color:#96D0FF">"$"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  mac: </span><span style="color:#96D0FF">"$"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  windows: </span><span style="color:#96D0FF">">"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">const</span><span style="color:#6CB6FF"> WINDOW_ALIGN_CLASS</span><span style="color:#F47067">:</span><span style="color:#F69D50"> Record</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">TerminalWindowNameAlign</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">> </span><span style="color:#F47067">=</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">  center: </span><span style="color:#96D0FF">"text-center"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  left: </span><span style="color:#96D0FF">"text-left"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  right: </span><span style="color:#96D0FF">"text-right"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> function</span><span style="color:#DCBDFB"> Terminal</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#F69D50">  commands</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  outputs</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> {},</span></span>
+<span class="line"><span style="color:#F69D50">  route</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "~/projects/nextjs"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  windowName</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "bash"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  windowNameAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "center"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  showWindowPane</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> true</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  backgroundVariant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "solid"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  variant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "mac"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  typingSpeed</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> 45</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  delayBetweenCommands</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> 1000</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  outputLineDelay</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> 130</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  playOnInView</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> false</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  inViewMargin</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "0px 0px -10% 0px"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  className</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  contentClassName</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span><span style="color:#F47067">:</span><span style="color:#F69D50"> TerminalProps</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">history</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setHistory</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">TerminalHistoryEntry</span><span style="color:#ADBAC7">[]>([]);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">currentCommandIndex</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setCurrentCommandIndex</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">typedChars</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setTypedChars</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">visibleOutputLines</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setVisibleOutputLines</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">hasStarted</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setHasStarted</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">playOnInView);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">phase</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setPhase</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">TerminalPhase</span><span style="color:#ADBAC7">>(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (commands.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ===</span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#96D0FF"> "done"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> playOnInView </span><span style="color:#F47067">?</span><span style="color:#96D0FF"> "idle"</span><span style="color:#F47067"> :</span><span style="color:#96D0FF"> "typing"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">  });</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> rootRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLDivElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> scrollContainerRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLDivElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> activeCommand</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> commands[currentCommandIndex] </span><span style="color:#F47067">??</span><span style="color:#96D0FF"> ""</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> activeOutput</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> outputs[currentCommandIndex] </span><span style="color:#F47067">??</span><span style="color:#ADBAC7"> [];</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> typedCommand</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> activeCommand.</span><span style="color:#DCBDFB">slice</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, typedChars);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> finalizedCurrentCommand</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useMemo</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">    () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> history.</span><span style="color:#DCBDFB">some</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> entry.id </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> \`cmd-\${</span><span style="color:#ADBAC7">currentCommandIndex</span><span style="color:#96D0FF">}\`</span><span style="color:#ADBAC7">),</span></span>
+<span class="line"><span style="color:#ADBAC7">    [currentCommandIndex, history],</span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">  useEffect</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">playOnInView </span><span style="color:#F47067">||</span><span style="color:#ADBAC7"> hasStarted </span><span style="color:#F47067">||</span><span style="color:#ADBAC7"> commands.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ===</span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#6CB6FF"> node</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> rootRef.current;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">node) {</span></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#6CB6FF"> observer</span><span style="color:#F47067"> =</span><span style="color:#F47067"> new</span><span style="color:#DCBDFB"> IntersectionObserver</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">      ([</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">        if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">entry?.isIntersecting) {</span></span>
+<span class="line"><span style="color:#F47067">          return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">        }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">        setHasStarted</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">true</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#DCBDFB">        setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"typing"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">        observer.</span><span style="color:#DCBDFB">disconnect</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"><span style="color:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#ADBAC7">      { rootMargin: inViewMargin, threshold: </span><span style="color:#6CB6FF">0.25</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">    );</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">    observer.</span><span style="color:#DCBDFB">observe</span><span style="color:#ADBAC7">(node);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> observer.</span><span style="color:#DCBDFB">disconnect</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, [commands.</span><span style="color:#6CB6FF">length</span><span style="color:#ADBAC7">, hasStarted, inViewMargin, playOnInView]);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">  useEffect</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#6CB6FF"> container</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> scrollContainerRef.current;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">container) {</span></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">    container.scrollTop </span><span style="color:#F47067">=</span><span style="color:#ADBAC7"> container.scrollHeight;</span></span>
+<span class="line"><span style="color:#ADBAC7">  });</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">  useEffect</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">hasStarted </span><span style="color:#F47067">||</span><span style="color:#ADBAC7"> phase </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "idle"</span><span style="color:#F47067"> ||</span><span style="color:#ADBAC7"> phase </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "done"</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#6CB6FF"> timeout</span><span style="color:#F47067"> =</span></span>
+<span class="line"><span style="color:#ADBAC7">      phase </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "typing"</span></span>
+<span class="line"><span style="color:#F47067">        ?</span><span style="color:#ADBAC7"> window.</span><span style="color:#DCBDFB">setTimeout</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">            if</span><span style="color:#ADBAC7"> (typedChars </span><span style="color:#F47067">&#x3C;</span><span style="color:#ADBAC7"> activeCommand.</span><span style="color:#6CB6FF">length</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">              setTypedChars</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">current</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> current </span><span style="color:#F47067">+</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">              return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">            }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">            if</span><span style="color:#ADBAC7"> (activeOutput.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">              setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"output"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">              return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">            }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">            setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"delay"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">          }, typingSpeed)</span></span>
+<span class="line"><span style="color:#F47067">        :</span><span style="color:#ADBAC7"> phase </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "output"</span></span>
+<span class="line"><span style="color:#F47067">          ?</span><span style="color:#ADBAC7"> window.</span><span style="color:#DCBDFB">setTimeout</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">              if</span><span style="color:#ADBAC7"> (visibleOutputLines </span><span style="color:#F47067">&#x3C;</span><span style="color:#ADBAC7"> activeOutput.</span><span style="color:#6CB6FF">length</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                setVisibleOutputLines</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">current</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> current </span><span style="color:#F47067">+</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">                return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">              }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">              setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"delay"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">            }, outputLineDelay)</span></span>
+<span class="line"><span style="color:#F47067">          :</span><span style="color:#ADBAC7"> window.</span><span style="color:#DCBDFB">setTimeout</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#DCBDFB">              setHistory</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">previous</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                const</span><span style="color:#6CB6FF"> next</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> [</span><span style="color:#F47067">...</span><span style="color:#ADBAC7">previous];</span></span>
+<span class="line"><span style="color:#F47067">                const</span><span style="color:#6CB6FF"> commandId</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> \`cmd-\${</span><span style="color:#ADBAC7">currentCommandIndex</span><span style="color:#96D0FF">}\`</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">                if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">next.</span><span style="color:#DCBDFB">some</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> entry.id </span><span style="color:#F47067">===</span><span style="color:#ADBAC7"> commandId)) {</span></span>
+<span class="line"><span style="color:#ADBAC7">                  next.</span><span style="color:#DCBDFB">push</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#ADBAC7">                    id: commandId,</span></span>
+<span class="line"><span style="color:#ADBAC7">                    kind: </span><span style="color:#96D0FF">"command"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                    text: activeCommand,</span></span>
+<span class="line"><span style="color:#ADBAC7">                  });</span></span>
+<span class="line"><span style="color:#ADBAC7">                }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">                activeOutput.</span><span style="color:#DCBDFB">forEach</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">line</span><span style="color:#ADBAC7">, </span><span style="color:#F69D50">lineIndex</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                  const</span><span style="color:#6CB6FF"> outputId</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> \`out-\${</span><span style="color:#ADBAC7">currentCommandIndex</span><span style="color:#96D0FF">}-\${</span><span style="color:#ADBAC7">lineIndex</span><span style="color:#96D0FF">}\`</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">                  if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">next.</span><span style="color:#DCBDFB">some</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> entry.id </span><span style="color:#F47067">===</span><span style="color:#ADBAC7"> outputId)) {</span></span>
+<span class="line"><span style="color:#ADBAC7">                    next.</span><span style="color:#DCBDFB">push</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#ADBAC7">                      id: outputId,</span></span>
+<span class="line"><span style="color:#ADBAC7">                      kind: </span><span style="color:#96D0FF">"output"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                      text: line,</span></span>
+<span class="line"><span style="color:#ADBAC7">                    });</span></span>
+<span class="line"><span style="color:#ADBAC7">                  }</span></span>
+<span class="line"><span style="color:#ADBAC7">                });</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">                return</span><span style="color:#ADBAC7"> next;</span></span>
+<span class="line"><span style="color:#ADBAC7">              });</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">              if</span><span style="color:#ADBAC7"> (currentCommandIndex </span><span style="color:#F47067">>=</span><span style="color:#ADBAC7"> commands.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"done"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">                return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">              }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">              setCurrentCommandIndex</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">current</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> current </span><span style="color:#F47067">+</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#DCBDFB">              setTypedChars</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#DCBDFB">              setVisibleOutputLines</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#DCBDFB">              setPhase</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"typing"</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">            }, delayBetweenCommands);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> window.</span><span style="color:#DCBDFB">clearTimeout</span><span style="color:#ADBAC7">(timeout);</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, [</span></span>
+<span class="line"><span style="color:#ADBAC7">    activeCommand,</span></span>
+<span class="line"><span style="color:#ADBAC7">    activeOutput,</span></span>
+<span class="line"><span style="color:#ADBAC7">    commands.</span><span style="color:#6CB6FF">length</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">    currentCommandIndex,</span></span>
+<span class="line"><span style="color:#ADBAC7">    delayBetweenCommands,</span></span>
+<span class="line"><span style="color:#ADBAC7">    hasStarted,</span></span>
+<span class="line"><span style="color:#ADBAC7">    outputLineDelay,</span></span>
+<span class="line"><span style="color:#ADBAC7">    phase,</span></span>
+<span class="line"><span style="color:#ADBAC7">    typedChars,</span></span>
+<span class="line"><span style="color:#ADBAC7">    typingSpeed,</span></span>
+<span class="line"><span style="color:#ADBAC7">    visibleOutputLines,</span></span>
+<span class="line"><span style="color:#ADBAC7">  ]);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> liveOutputEntries</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useMemo</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#6CB6FF"> seen</span><span style="color:#F47067"> =</span><span style="color:#F47067"> new</span><span style="color:#DCBDFB"> Map</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">number</span><span style="color:#ADBAC7">>();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> activeOutput.</span><span style="color:#DCBDFB">slice</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, visibleOutputLines).</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">line</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> count</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> (seen.</span><span style="color:#DCBDFB">get</span><span style="color:#ADBAC7">(line) </span><span style="color:#F47067">??</span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">+</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">      seen.</span><span style="color:#DCBDFB">set</span><span style="color:#ADBAC7">(line, count);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">      return</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">        id: </span><span style="color:#96D0FF">\`live-out-\${</span><span style="color:#ADBAC7">currentCommandIndex</span><span style="color:#96D0FF">}-\${</span><span style="color:#ADBAC7">line</span><span style="color:#96D0FF">}-\${</span><span style="color:#ADBAC7">count</span><span style="color:#96D0FF">}\`</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">        line,</span></span>
+<span class="line"><span style="color:#ADBAC7">      };</span></span>
+<span class="line"><span style="color:#ADBAC7">    });</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, [activeOutput, currentCommandIndex, visibleOutputLines]);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span></span>
+<span class="line"><span style="color:#6CB6FF">      ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">rootRef</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">      className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">        "w-full overflow-hidden rounded-md border border-neutral-700/70 bg-neutral-950 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">        className,</span></span>
+<span class="line"><span style="color:#ADBAC7">      )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">    ></span></span>
+<span class="line"><span style="color:#F47067">      {</span><span style="color:#ADBAC7">showWindowPane </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">TerminalWindowPane</span></span>
+<span class="line"><span style="color:#6CB6FF">          variant</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">variant</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">          windowName</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">windowName</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">          windowNameAlign</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">windowNameAlign</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        /></span></span>
+<span class="line"><span style="color:#ADBAC7">      ) </span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> null</span><span style="color:#F47067">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span></span>
+<span class="line"><span style="color:#6CB6FF">        ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">scrollContainerRef</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">          "h-[360px] overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          backgroundVariant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "gradient"</span></span>
+<span class="line"><span style="color:#F47067">            ?</span><span style="color:#96D0FF"> "bg-[radial-gradient(circle_at_top,_rgba(64,64,64,0.28),_rgba(10,10,10,0.96)_42%)]"</span></span>
+<span class="line"><span style="color:#F47067">            :</span><span style="color:#96D0FF"> "bg-neutral-950"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          contentClassName,</span></span>
+<span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      ></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"space-y-0.5"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">history.</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span></span>
+<span class="line"><span style="color:#ADBAC7">            entry.kind </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "command"</span><span style="color:#F47067"> ?</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">CommandLine</span></span>
+<span class="line"><span style="color:#6CB6FF">                key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.id</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                route</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">route</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                promptSymbol</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">PROMPT_SYMBOL</span><span style="color:#ADBAC7">[variant]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                command</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.text</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">              /></span></span>
+<span class="line"><span style="color:#ADBAC7">            ) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">OutputLine</span><span style="color:#6CB6FF"> key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.id</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> line</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.text</span><span style="color:#F47067">}</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">            ),</span></span>
+<span class="line"><span style="color:#ADBAC7">          )</span><span style="color:#F47067">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">hasStarted </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#ADBAC7"> phase </span><span style="color:#F47067">!==</span><span style="color:#96D0FF"> "done"</span><span style="color:#F47067"> &#x26;&#x26;</span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">finalizedCurrentCommand </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">CommandLine</span></span>
+<span class="line"><span style="color:#6CB6FF">              route</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">route</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              promptSymbol</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">PROMPT_SYMBOL</span><span style="color:#ADBAC7">[variant]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              command</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">typedCommand</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              cursor</span></span>
+<span class="line"><span style="color:#ADBAC7">            /></span></span>
+<span class="line"><span style="color:#ADBAC7">          ) </span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> null</span><span style="color:#F47067">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">phase </span><span style="color:#F47067">!==</span><span style="color:#96D0FF"> "typing"</span></span>
+<span class="line"><span style="color:#F47067">            ?</span><span style="color:#ADBAC7"> liveOutputEntries.</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">OutputLine</span><span style="color:#6CB6FF"> key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.id</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> line</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.line</span><span style="color:#F47067">}</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              ))</span></span>
+<span class="line"><span style="color:#F47067">            :</span><span style="color:#6CB6FF"> null</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">function</span><span style="color:#DCBDFB"> TerminalWindowPane</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#F69D50">  variant</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  windowName</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  windowNameAlign</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F69D50">  variant</span><span style="color:#F47067">:</span><span style="color:#F69D50"> TerminalVariant</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  windowName</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  windowNameAlign</span><span style="color:#F47067">:</span><span style="color:#F69D50"> TerminalWindowNameAlign</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">}) {</span></span>
+<span class="line"><span style="color:#F47067">  if</span><span style="color:#ADBAC7"> (variant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "mac"</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center border-b border-neutral-700 bg-neutral-900 px-3 py-2.5"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex w-16 items-center gap-1.5"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3 rounded-full bg-[#ff5f56]"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3 rounded-full bg-[#ffbd2e]"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3 rounded-full bg-[#27c93f]"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span></span>
+<span class="line"><span style="color:#6CB6FF">          className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">            "grow truncate text-xs font-medium text-neutral-300"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#6CB6FF">            WINDOW_ALIGN_CLASS</span><span style="color:#ADBAC7">[windowNameAlign],</span></span>
+<span class="line"><span style="color:#ADBAC7">          )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        ></span></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">windowName</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"w-16"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    );</span></span>
+<span class="line"><span style="color:#ADBAC7">  }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  if</span><span style="color:#ADBAC7"> (variant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "windows"</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center border-b border-neutral-700 bg-neutral-900 px-2 py-2"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bg-blue-600 rounded-xs p-0.5"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">TerminalIcon</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-4"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span></span>
+<span class="line"><span style="color:#6CB6FF">          className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">            "mx-3 grow truncate text-xs font-medium text-neutral-200"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#6CB6FF">            WINDOW_ALIGN_CLASS</span><span style="color:#ADBAC7">[windowNameAlign],</span></span>
+<span class="line"><span style="color:#ADBAC7">          )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        ></span></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">windowName</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center text-[10px] text-neutral-300"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            -</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            □</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-red-600/80"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            ×</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    );</span></span>
+<span class="line"><span style="color:#ADBAC7">  }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center border-b border-neutral-700 bg-[#1f2937] px-3 py-2"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex w-16 items-center gap-1"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-2.5 w-3 rounded-sm bg-neutral-300"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-2.5 w-3 rounded-sm bg-neutral-500"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-2.5 w-3 rounded-sm bg-neutral-700"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">span</span></span>
+<span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">          "grow truncate text-xs font-medium text-neutral-200"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#6CB6FF">          WINDOW_ALIGN_CLASS</span><span style="color:#ADBAC7">[windowNameAlign],</span></span>
+<span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      ></span></span>
+<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">windowName</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"w-16"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">function</span><span style="color:#DCBDFB"> CommandLine</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#F69D50">  route</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  promptSymbol</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  command</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  cursor</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> false</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F69D50">  route</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  promptSymbol</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  command</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  cursor</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">}) {</span></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex flex-wrap items-start gap-2"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"text-emerald-400"</span><span style="color:#ADBAC7">></span><span style="color:#F47067">{</span><span style="color:#ADBAC7">route</span><span style="color:#F47067">}</span><span style="color:#ADBAC7">&#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"text-emerald-500"</span><span style="color:#ADBAC7">></span><span style="color:#F47067">{</span><span style="color:#ADBAC7">promptSymbol</span><span style="color:#F47067">}</span><span style="color:#ADBAC7">&#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"break-all text-neutral-200"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">command</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">cursor </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">motion.span</span></span>
+<span class="line"><span style="color:#6CB6FF">            aria-hidden</span></span>
+<span class="line"><span style="color:#6CB6FF">            className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"ml-0.5 inline-block h-[1.1em] w-[0.58em] translate-y-1 bg-neutral-100"</span></span>
+<span class="line"><span style="color:#6CB6FF">            animate</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: [</span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">] }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            transition</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ duration: </span><span style="color:#6CB6FF">0.85</span><span style="color:#ADBAC7">, repeat: </span><span style="color:#6CB6FF">Infinity</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"linear"</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">          /></span></span>
+<span class="line"><span style="color:#ADBAC7">        ) </span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> null</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">function</span><span style="color:#DCBDFB"> OutputLine</span><span style="color:#ADBAC7">({ </span><span style="color:#F69D50">line</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> { </span><span style="color:#F69D50">line</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7"> }) {</span></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> &#x3C;</span><span style="color:#8DDB8C">p</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"whitespace-pre-wrap text-neutral-400"</span><span style="color:#ADBAC7">></span><span style="color:#F47067">{</span><span style="color:#ADBAC7">line</span><span style="color:#F47067">}</span><span style="color:#ADBAC7">&#x3C;/</span><span style="color:#8DDB8C">p</span><span style="color:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span></code></pre>`,
+      install: {
+        npx: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">npx</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/terminal</span></span></code></pre>`,
+        pnpm: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">pnpm</span><span style="color:#96D0FF"> dlx</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/terminal</span></span></code></pre>`,
+        bun: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">bunx</span><span style="color:#6CB6FF"> --bun</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/terminal</span></span></code></pre>`,
+      },
+    },
+    usage: `"use client";
+
+import { Terminal } from "@/components/ui/terminal";
+
+export function TerminalDemo() {
+  return (
+    <section className="w-full py-10 md:py-20">
+      <Terminal
+        commands={[
+          "npx shadcn@latest init",
+          "npm install motion",
+          "npx shadcn@latest add button card",
+          "Term Deez Nuts",
+        ]}
+        outputs={{
+          0: [
+            "✔ Preflight checks passed.",
+            "✔ Created components.json",
+            "✔ Initialized project.",
+          ],
+          1: ["added 1 package in 2s"],
+          2: ["✔ Done. Installed button, card."],
+        }}
+        route="~/workspace/vega"
+        windowName="bash - setup"
+        variant="mac"
+        windowNameAlign="center"
+        backgroundVariant="gradient"
+        playOnInView
+        typingSpeed={45}
+        delayBetweenCommands={1000}
+      />
+    </section>
+  );
+}
+
+export function WindowsTerminalDemo() {
+  return (
+    <Terminal
+      commands={["pnpm dev", "pnpm build"]}
+      outputs={{
+        0: ["Ready in 1.8s"],
+        1: ["Compiled successfully"],
+      }}
+      route="C:\\\\Users\\\\you\\\\project"
+      windowName="Windows Terminal"
+      windowNameAlign="left"
+      variant="windows"
+    />
+  );
+}
+
+export function HeaderlessTerminalDemo() {
+  return (
+    <Terminal
+      commands={["docker compose up"]}
+      outputs={{
+        0: ["[+] Running 6/6", "api-1  | listening on :3000"],
+      }}
+      route="~/infra/local"
+      showWindowPane={false}
+      variant="linux"
+    />
+  );
+}`,
+    props: [
+      {
+        name: "commands",
+        type: "string[]",
+        description: "Commands typed into the terminal in sequence.",
+      },
+      {
+        name: "outputs",
+        type: "Record<number, string[]>",
+        description:
+          "Maps each command index to the lines revealed after that command completes.",
+      },
+      {
+        name: "route",
+        type: "string",
+        default: '"~/projects/nextjs"',
+        description: "Prompt path shown before each command.",
+      },
+      {
+        name: "windowName",
+        type: "string",
+        default: '"bash"',
+        description: "Title text shown inside the window pane.",
+      },
+      {
+        name: "variant",
+        type: '"mac" | "windows" | "linux"',
+        default: '"mac"',
+        description: "Visual style of the window chrome and prompt.",
+      },
+      {
+        name: "showWindowPane",
+        type: "boolean",
+        default: "true",
+        description: "Hides the window chrome when set to false.",
+      },
+      {
+        name: "windowNameAlign",
+        type: '"left" | "center" | "right"',
+        default: '"center"',
+        description: "Controls the alignment of the window title.",
+      },
+      {
+        name: "backgroundVariant",
+        type: '"solid" | "gradient"',
+        default: '"solid"',
+        description:
+          "Chooses between a plain terminal body or a subtle gradient treatment.",
+      },
+      {
+        name: "playOnInView",
+        type: "boolean",
+        default: "false",
+        description:
+          "Starts the playback only after the terminal enters the viewport.",
+      },
+    ],
+    subComponents: [],
+  },
 ];
 
 export function getComponent(slug: string): ComponentMeta | undefined {

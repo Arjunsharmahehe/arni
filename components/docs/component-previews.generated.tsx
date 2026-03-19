@@ -28,6 +28,11 @@ const previews: Record<string, React.ComponentType> = {
       default: module.LinearCardPreview,
     })),
   ),
+  terminal: dynamic(() =>
+    import("@/registry/base-vega/terminal/preview").then((module) => ({
+      default: module.TerminalPreview,
+    })),
+  ),
 };
 
 export function ComponentPreviewRenderer({ slug }: { slug: string }) {

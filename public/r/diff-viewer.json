@@ -3,9 +3,7 @@
   "name": "diff-viewer",
   "title": "Diff Viewer",
   "description": "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
-  "dependencies": [
-    "lucide-react"
-  ],
+  "dependencies": ["lucide-react"],
   "registryDependencies": [],
   "files": [
     {
@@ -134,9 +132,6 @@
       ]
     }
   },
-  "categories": [
-    "code",
-    "marketing"
-  ],
+  "categories": ["code", "marketing"],
   "type": "registry:component"
 }

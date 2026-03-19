@@ -3,13 +3,8 @@
   "name": "hero-background",
   "title": "Hero Background",
   "description": "An animated glow-and-stars backdrop you can drop into any relative container to build cinematic landing sections.",
-  "dependencies": [
-    "motion"
-  ],
-  "registryDependencies": [
-    "button",
-    "sheet"
-  ],
+  "dependencies": ["motion"],
+  "registryDependencies": ["button", "sheet"],
   "files": [
     {
       "path": "registry/base-vega/hero-background/hero-background.tsx",
@@ -70,9 +65,6 @@
       "subComponents": []
     }
   },
-  "categories": [
-    "background",
-    "marketing"
-  ],
+  "categories": ["background", "marketing"],
   "type": "registry:component"
 }

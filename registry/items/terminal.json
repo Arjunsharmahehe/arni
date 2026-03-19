@@ -1,0 +1,80 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "terminal",
+  "type": "registry:component",
+  "title": "Terminal",
+  "description": "A procedural terminal playback component with typed commands, line-by-line output reveals, optional in-view start, and macOS, Windows, and Linux window variants.",
+  "dependencies": ["motion", "lucide-react"],
+  "registryDependencies": [],
+  "categories": ["code", "marketing"],
+  "files": [
+    {
+      "path": "registry/base-vega/terminal/terminal.tsx",
+      "type": "registry:ui",
+      "target": "components/ui/terminal.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/terminal/preview.tsx",
+      "previewExportName": "TerminalPreview",
+      "usagePath": "registry/base-vega/terminal/usage.tsx",
+      "sourcePath": "registry/base-vega/terminal/terminal.tsx",
+      "props": [
+        {
+          "name": "commands",
+          "type": "string[]",
+          "description": "Commands typed into the terminal in sequence."
+        },
+        {
+          "name": "outputs",
+          "type": "Record<number, string[]>",
+          "description": "Maps each command index to the lines revealed after that command completes."
+        },
+        {
+          "name": "route",
+          "type": "string",
+          "default": "\"~/projects/nextjs\"",
+          "description": "Prompt path shown before each command."
+        },
+        {
+          "name": "windowName",
+          "type": "string",
+          "default": "\"bash\"",
+          "description": "Title text shown inside the window pane."
+        },
+        {
+          "name": "variant",
+          "type": "\"mac\" | \"windows\" | \"linux\"",
+          "default": "\"mac\"",
+          "description": "Visual style of the window chrome and prompt."
+        },
+        {
+          "name": "showWindowPane",
+          "type": "boolean",
+          "default": "true",
+          "description": "Hides the window chrome when set to false."
+        },
+        {
+          "name": "windowNameAlign",
+          "type": "\"left\" | \"center\" | \"right\"",
+          "default": "\"center\"",
+          "description": "Controls the alignment of the window title."
+        },
+        {
+          "name": "backgroundVariant",
+          "type": "\"solid\" | \"gradient\"",
+          "default": "\"solid\"",
+          "description": "Chooses between a plain terminal body or a subtle gradient treatment."
+        },
+        {
+          "name": "playOnInView",
+          "type": "boolean",
+          "default": "false",
+          "description": "Starts the playback only after the terminal enters the viewport."
+        }
+      ],
+      "subComponents": []
+    }
+  }
+}

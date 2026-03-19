@@ -12,7 +12,9 @@ export default function DocsLayout({
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
           <DocsSidebarTrigger />
           <div className="mr-2 h-4 w-px bg-border" />
-          <span className="text-sm font-medium text-muted-foreground">Docs</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Docs
+          </span>
         </header>
       }
     >

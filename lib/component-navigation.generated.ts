@@ -36,4 +36,11 @@ export const componentNavigation: ComponentNavMeta[] = [
       "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
     categories: ["card", "marketing"],
   },
+  {
+    slug: "terminal",
+    name: "Terminal",
+    description:
+      "A procedural terminal playback component with typed commands, line-by-line output reveals, optional in-view start, and macOS, Windows, and Linux window variants.",
+    categories: ["code", "marketing"],
+  },
 ];

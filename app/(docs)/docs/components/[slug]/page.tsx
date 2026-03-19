@@ -27,8 +27,14 @@ export default async function ComponentPage({
     notFound();
   }
 
-  const { component, installCommands, installHtml, sourceCode, sourceHtml, usageHtml } =
-    pageData;
+  const {
+    component,
+    installCommands,
+    installHtml,
+    sourceCode,
+    sourceHtml,
+    usageHtml,
+  } = pageData;
 
   const installTabs = [
     {

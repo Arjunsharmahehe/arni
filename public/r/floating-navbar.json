@@ -3,10 +3,7 @@
   "name": "floating-navbar",
   "title": "Floating Navbar",
   "description": "A reusable floating navigation bar with preserved motion behavior, array-driven links, and flexible brand configuration for logo or text.",
-  "dependencies": [
-    "lucide-react",
-    "motion"
-  ],
+  "dependencies": ["lucide-react", "motion"],
   "registryDependencies": [],
   "files": [
     {
@@ -85,9 +82,6 @@
       ]
     }
   },
-  "categories": [
-    "navigation",
-    "marketing"
-  ],
+  "categories": ["navigation", "marketing"],
   "type": "registry:component"
 }
