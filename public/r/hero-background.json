@@ -6,7 +6,10 @@
   "dependencies": [
     "motion"
   ],
-  "registryDependencies": [],
+  "registryDependencies": [
+    "button",
+    "sheet"
+  ],
   "files": [
     {
       "path": "registry/base-vega/hero-background/hero-background.tsx",

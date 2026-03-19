@@ -16,6 +16,47 @@ import {
 } from "@/components/ui/sidebar";
 import { componentRegistry } from "@/lib/component-registry";
 
+function toCategoryLabel(category: string) {
+  return category
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+const groupedComponents = componentRegistry.reduce<
+  Record<string, typeof componentRegistry>
+>((groups, component) => {
+  const primaryCategory = component.categories?.[0] ?? "other";
+
+  if (!groups[primaryCategory]) {
+    groups[primaryCategory] = [];
+  }
+
+  groups[primaryCategory].push(component);
+  return groups;
+}, {});
+
+const sortedComponentGroups = Object.entries(groupedComponents)
+  .map(([category, components]) => ({
+    category,
+    label: category === "other" ? "Other" : toCategoryLabel(category),
+    components: [...components].sort((left, right) =>
+      left.name.localeCompare(right.name),
+    ),
+  }))
+  .sort((left, right) => {
+    if (left.category === "other") {
+      return 1;
+    }
+
+    if (right.category === "other") {
+      return -1;
+    }
+
+    return left.label.localeCompare(right.label);
+  });
+
 export function AppSidebar() {
   const pathname = usePathname();
 
@@ -52,25 +93,29 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Components</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {componentRegistry.map((component) => (
-                <SidebarMenuItem key={component.slug}>
-                  <SidebarMenuButton
-                    render={
-                      <Link href={`/docs/components/${component.slug}`} />
-                    }
-                    isActive={pathname === `/docs/components/${component.slug}`}
-                  >
-                    <span>{component.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {sortedComponentGroups.map((group) => (
+          <SidebarGroup key={group.category}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.components.map((component) => (
+                  <SidebarMenuItem key={component.slug}>
+                    <SidebarMenuButton
+                      render={
+                        <Link href={`/docs/components/${component.slug}`} />
+                      }
+                      isActive={
+                        pathname === `/docs/components/${component.slug}`
+                      }
+                    >
+                      <span>{component.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarRail />

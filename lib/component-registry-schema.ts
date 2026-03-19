@@ -15,6 +15,7 @@ export type ComponentMeta = {
   slug: string;
   name: string;
   description: string;
+  categories?: string[];
   sourcePath?: string;
   code?: string;
   usage: string;

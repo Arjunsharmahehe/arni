@@ -50,6 +50,11 @@ Do not hand-edit generated files unless explicitly debugging generation output.
   - `"registryDependencies": ["{{REGISTRY_ALIAS}}/card-wave"]`
 - Do not use bare `"card-wave"` unless intentionally targeting default upstream style registries.
 
+### Docs categories
+- Set `categories` on registry items so the docs can group components in navigation.
+- If a component has multiple categories, docs use only the first category as its primary group.
+- Prefer short kebab-case category names like `marketing`, `navigation`, or `code`.
+
 ## Commands
 
 ### Add a component

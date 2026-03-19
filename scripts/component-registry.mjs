@@ -676,6 +676,7 @@ async function buildDocsComponents(items) {
       slug: item.name,
       name: item.title,
       description: item.description,
+      categories: item.categories ?? [],
       sourcePath,
       previewPath: docs.previewPath,
       previewExportName:
@@ -696,6 +697,7 @@ async function writeGeneratedRegistry(docsComponents) {
     slug: ${JSON.stringify(component.slug)},
     name: ${JSON.stringify(component.name)},
     description: ${JSON.stringify(component.description)},
+    categories: ${JSON.stringify(component.categories ?? [])},
     sourcePath: ${JSON.stringify(component.sourcePath)},
     usage: ${BACKTICK_TOKEN}${escapeTemplateLiteral(component.usage.trim())}${BACKTICK_TOKEN},
     props: ${JSON.stringify(component.props, null, 4).replace(/^/gm, "    ").trimStart()},

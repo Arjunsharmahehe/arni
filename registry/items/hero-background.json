@@ -6,6 +6,7 @@
   "description": "An animated glow-and-stars backdrop you can drop into any relative container to build cinematic landing sections.",
   "dependencies": ["motion"],
   "categories": ["background", "marketing"],
+  "registryDependencies": ["button", "sheet"],
   "files": [
     {
       "path": "registry/base-vega/hero-background/hero-background.tsx",

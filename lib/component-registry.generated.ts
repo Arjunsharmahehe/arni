@@ -6,6 +6,7 @@ export const componentRegistry: ComponentMeta[] = [
     name: "Card Wave",
     description:
       "A tastefull svg with interactive hover effects to make the boring cards interesting",
+    categories: ["svg", "motion"],
     sourcePath: "registry/base-vega/card-wave/card-wave.tsx",
     usage: `import CardWave from "@/registry/base-vega/card-wave/card-wave";
 import {
@@ -68,6 +69,7 @@ import {
     name: "Diff Viewer",
     description:
       "A lightweight compound diff code block for landing pages with responsive before/after panels, inherited inline marks, and customizable syntax highlighting rules.",
+    categories: ["code", "marketing"],
     sourcePath: "registry/base-vega/diff-viewer/diff-viewer.tsx",
     usage: `import {
   DiffLine,
@@ -251,6 +253,7 @@ const highlightRules = [
     name: "Floating Navbar",
     description:
       "A reusable floating navigation bar with preserved motion behavior, array-driven links, and flexible brand configuration for logo or text.",
+    categories: ["navigation", "marketing"],
     sourcePath: "registry/base-vega/floating-navbar/floating-navbar.tsx",
     usage: `import Image from "next/image";
 import {
@@ -367,6 +370,7 @@ const navItems: FloatingNavbarItem[] = [
     name: "Hero Background",
     description:
       "An animated glow-and-stars backdrop you can drop into any relative container to build cinematic landing sections.",
+    categories: ["background", "marketing"],
     sourcePath: "registry/base-vega/hero-background/hero-background.tsx",
     usage: `import Link from "next/link";
 import { HeroBackground } from "@/registry/base-vega/hero-background/hero-background";
@@ -462,6 +466,7 @@ import { HeroBackground } from "@/registry/base-vega/hero-background/hero-backgr
     name: "Linear Card",
     description:
       "A compound feature card inspired by Linear's design language. Supports image and reactive SVG content variants with a minimal, editorial layout.",
+    categories: ["card", "marketing"],
     sourcePath: "registry/base-vega/linear-card/linear-card.tsx",
     usage: `import Image from "next/image";
 import CardWave from "@/registry/base-vega/card-wave/card-wave";
