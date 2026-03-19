@@ -3452,7 +3452,7 @@ import {
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { TerminalIcon } from "lucide-react";
+import { Minus, Square, TerminalIcon, X } from "lucide-react";
 
 export type TerminalVariant = "mac" | "windows" | "linux";
 export type TerminalWindowNameAlign = "left" | "center" | "right";
@@ -3691,9 +3691,9 @@ export function Terminal({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "h-[360px] overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
+          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
           backgroundVariant === "gradient"
-            ? "bg-[radial-gradient(circle_at_top,_rgba(64,64,64,0.28),_rgba(10,10,10,0.96)_42%)]"
+            ? "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"
             : "bg-neutral-950",
           contentClassName,
         )}
@@ -3764,8 +3764,8 @@ function TerminalWindowPane({
 
   if (variant === "windows") {
     return (
-      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 px-2 py-2">
-        <div className="bg-blue-600 rounded-xs p-0.5">
+      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 pl-2">
+        <div className="bg-blue-600 rounded-xs p-0.5 my-2.5">
           <TerminalIcon className="size-4" />
         </div>
         <span
@@ -3777,14 +3777,14 @@ function TerminalWindowPane({
           {windowName}
         </span>
         <div className="flex items-center text-[10px] text-neutral-300">
-          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
-            -
+          <span className="grid h-10 w-12 place-items-center hover:bg-white/10">
+            <Minus className="size-3" />
           </span>
-          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
-            □
+          <span className="grid h-10 w-12 place-items-center hover:bg-white/10">
+            <Square className="size-3" />
           </span>
-          <span className="grid h-6 w-8 place-items-center hover:bg-red-600/80">
-            ×
+          <span className="grid h-10 w-12 place-items-center hover:bg-red-600/80">
+            <X className="size-4" />
           </span>
         </div>
       </div>
@@ -3920,7 +3920,7 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { motion } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "motion/react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useEffect, useMemo, useRef, useState } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { cn } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/lib/utils"</span><span style="color:#ADBAC7">;</span></span>
-<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { TerminalIcon } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { Minus, Square, TerminalIcon, X } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalVariant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "mac"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "windows"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "linux"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalWindowNameAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "left"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "center"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "right"</span><span style="color:#ADBAC7">;</span></span>
@@ -4159,9 +4159,9 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span></span>
 <span class="line"><span style="color:#6CB6FF">        ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">scrollContainerRef</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
-<span class="line"><span style="color:#96D0FF">          "h-[360px] overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5"</span><span style="color:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#ADBAC7">          backgroundVariant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "gradient"</span></span>
-<span class="line"><span style="color:#F47067">            ?</span><span style="color:#96D0FF"> "bg-[radial-gradient(circle_at_top,_rgba(64,64,64,0.28),_rgba(10,10,10,0.96)_42%)]"</span></span>
+<span class="line"><span style="color:#F47067">            ?</span><span style="color:#96D0FF"> "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"</span></span>
 <span class="line"><span style="color:#F47067">            :</span><span style="color:#96D0FF"> "bg-neutral-950"</span><span style="color:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#ADBAC7">          contentClassName,</span></span>
 <span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
@@ -4232,8 +4232,8 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"></span>
 <span class="line"><span style="color:#F47067">  if</span><span style="color:#ADBAC7"> (variant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "windows"</span><span style="color:#ADBAC7">) {</span></span>
 <span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> (</span></span>
-<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center border-b border-neutral-700 bg-neutral-900 px-2 py-2"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bg-blue-600 rounded-xs p-0.5"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center border-b border-neutral-700 bg-neutral-900 pl-2"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bg-blue-600 rounded-xs p-0.5 my-2.5"</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">TerminalIcon</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-4"</span><span style="color:#ADBAC7"> /></span></span>
 <span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span></span>
@@ -4245,14 +4245,14 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">windowName</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center text-[10px] text-neutral-300"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">            -</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-10 w-12 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">Minus</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3"</span><span style="color:#ADBAC7"> /></span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">            □</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-10 w-12 place-items-center hover:bg-white/10"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">Square</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3"</span><span style="color:#ADBAC7"> /></span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-6 w-8 place-items-center hover:bg-red-600/80"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">            ×</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"grid h-10 w-12 place-items-center hover:bg-red-600/80"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">X</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-4"</span><span style="color:#ADBAC7"> /></span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">        &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>

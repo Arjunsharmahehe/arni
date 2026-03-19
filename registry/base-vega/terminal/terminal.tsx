@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { TerminalIcon } from "lucide-react";
+import { Minus, Square, TerminalIcon, X } from "lucide-react";
 
 export type TerminalVariant = "mac" | "windows" | "linux";
 export type TerminalWindowNameAlign = "left" | "center" | "right";
@@ -242,9 +242,9 @@ export function Terminal({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "h-[360px] overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
+          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
           backgroundVariant === "gradient"
-            ? "bg-[radial-gradient(circle_at_top,_rgba(64,64,64,0.28),_rgba(10,10,10,0.96)_42%)]"
+            ? "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"
             : "bg-neutral-950",
           contentClassName,
         )}
@@ -315,8 +315,8 @@ function TerminalWindowPane({
 
   if (variant === "windows") {
     return (
-      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 px-2 py-2">
-        <div className="bg-blue-600 rounded-xs p-0.5">
+      <div className="flex items-center border-b border-neutral-700 bg-neutral-900 pl-2">
+        <div className="bg-blue-600 rounded-xs p-0.5 my-2.5">
           <TerminalIcon className="size-4" />
         </div>
         <span
@@ -328,14 +328,14 @@ function TerminalWindowPane({
           {windowName}
         </span>
         <div className="flex items-center text-[10px] text-neutral-300">
-          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
-            -
+          <span className="grid h-10 w-12 place-items-center hover:bg-white/10">
+            <Minus className="size-3" />
           </span>
-          <span className="grid h-6 w-8 place-items-center hover:bg-white/10">
-            □
+          <span className="grid h-10 w-12 place-items-center hover:bg-white/10">
+            <Square className="size-3" />
           </span>
-          <span className="grid h-6 w-8 place-items-center hover:bg-red-600/80">
-            ×
+          <span className="grid h-10 w-12 place-items-center hover:bg-red-600/80">
+            <X className="size-4" />
           </span>
         </div>
       </div>
