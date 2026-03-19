@@ -26,6 +26,7 @@ export interface DiffHighlightRule {
 
 interface DiffToken {
   className?: string;
+  style?: CSSProperties;
   name?: string;
   start: number;
   value: string;
