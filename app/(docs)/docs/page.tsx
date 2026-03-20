@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { groupComponentsByCategory } from "@/lib/component-groups";
 import { componentNavigation } from "@/lib/component-navigation";
 
 export const dynamic = "force-static";
+
+export const metadata: Metadata = {
+  title: "Docs - Arni",
+  description:
+    "Browse Arni docs and discover minimal, composable UI components ready to drop into your project.",
+};
 
 const sortedComponentGroups = groupComponentsByCategory(componentNavigation);
 

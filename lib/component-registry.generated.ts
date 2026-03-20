@@ -3449,10 +3449,10 @@ import {
     sourcePath: "registry/base-vega/terminal/terminal.tsx",
     sourceCode: `"use client";
 
+import { Minus, Square, TerminalIcon, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Square, TerminalIcon, X } from "lucide-react";
 
 export type TerminalVariant = "mac" | "windows" | "linux";
 export type TerminalWindowNameAlign = "left" | "center" | "right";
@@ -3691,7 +3691,7 @@ export function Terminal({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
+          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-900 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-900",
           backgroundVariant === "gradient"
             ? "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"
             : "bg-neutral-950",
@@ -3721,7 +3721,7 @@ export function Terminal({
             />
           ) : null}
 
-          {phase !== "typing"
+          {phase !== "typing" && !finalizedCurrentCommand
             ? liveOutputEntries.map((entry) => (
                 <OutputLine key={entry.id} line={entry.line} />
               ))
@@ -3917,10 +3917,10 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#ADBAC7">}</span></span></code></pre>`,
       source: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#96D0FF">"use client"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { Minus, Square, TerminalIcon, X } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { motion } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "motion/react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useEffect, useMemo, useRef, useState } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { cn } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/lib/utils"</span><span style="color:#ADBAC7">;</span></span>
-<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { Minus, Square, TerminalIcon, X } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalVariant</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "mac"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "windows"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "linux"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#F69D50"> TerminalWindowNameAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "left"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "center"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "right"</span><span style="color:#ADBAC7">;</span></span>
@@ -4159,7 +4159,7 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">div</span></span>
 <span class="line"><span style="color:#6CB6FF">        ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">scrollContainerRef</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
-<span class="line"><span style="color:#96D0FF">          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5 [&#x26;::-webkit-scrollbar]:w-1 [&#x26;::-webkit-scrollbar-track]:bg-transparent [&#x26;::-webkit-scrollbar-thumb]:bg-neutral-900 dark:[&#x26;::-webkit-scrollbar-track]:bg-transparent dark:[&#x26;::-webkit-scrollbar-thumb]:bg-neutral-900"</span><span style="color:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#ADBAC7">          backgroundVariant </span><span style="color:#F47067">===</span><span style="color:#96D0FF"> "gradient"</span></span>
 <span class="line"><span style="color:#F47067">            ?</span><span style="color:#96D0FF"> "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"</span></span>
 <span class="line"><span style="color:#F47067">            :</span><span style="color:#96D0FF"> "bg-neutral-950"</span><span style="color:#ADBAC7">,</span></span>
@@ -4189,7 +4189,7 @@ function OutputLine({ line }: { line: string }) {
 <span class="line"><span style="color:#ADBAC7">            /></span></span>
 <span class="line"><span style="color:#ADBAC7">          ) </span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> null</span><span style="color:#F47067">}</span></span>
 <span class="line"></span>
-<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">phase </span><span style="color:#F47067">!==</span><span style="color:#96D0FF"> "typing"</span></span>
+<span class="line"><span style="color:#F47067">          {</span><span style="color:#ADBAC7">phase </span><span style="color:#F47067">!==</span><span style="color:#96D0FF"> "typing"</span><span style="color:#F47067"> &#x26;&#x26;</span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">finalizedCurrentCommand</span></span>
 <span class="line"><span style="color:#F47067">            ?</span><span style="color:#ADBAC7"> liveOutputEntries.</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">entry</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
 <span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">OutputLine</span><span style="color:#6CB6FF"> key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.id</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> line</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">entry.line</span><span style="color:#F47067">}</span><span style="color:#ADBAC7"> /></span></span>
 <span class="line"><span style="color:#ADBAC7">              ))</span></span>

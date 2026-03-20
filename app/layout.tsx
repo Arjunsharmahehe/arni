@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Components",
+  title: "Arni",
   description:
     "A collection of carefully crafted UI components. Minimal, precise, and designed to feel premium.",
 };

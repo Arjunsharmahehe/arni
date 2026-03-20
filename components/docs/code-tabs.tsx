@@ -19,13 +19,14 @@ export function CodeTabs({
   tabs: CodeTab[];
   className?: string;
 }) {
-  if (tabs.length === 0) return null;
-
-  const [activeTabLabel, setActiveTabLabel] = useState(tabs[0]?.label);
+  const firstTab = tabs[0];
+  const [activeTabLabel, setActiveTabLabel] = useState(firstTab?.label ?? "");
   const activeTab = useMemo(
-    () => tabs.find((tab) => tab.label === activeTabLabel) ?? tabs[0],
-    [activeTabLabel, tabs],
+    () => tabs.find((tab) => tab.label === activeTabLabel) ?? firstTab,
+    [activeTabLabel, firstTab, tabs],
   );
+
+  if (!activeTab) return null;
 
   return (
     <Tabs

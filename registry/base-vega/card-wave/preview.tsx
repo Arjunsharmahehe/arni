@@ -1,13 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import CardWave from "@/registry/base-vega/card-wave/card-wave";
 import {
   LinearCard,
   LinearCardBody,
   LinearCardHeader,
   LinearCardHeading,
-  LinearCardImageContainer,
   LinearCardSubheading,
   LinearCardSVGContainer,
 } from "@/registry/base-vega/linear-card/linear-card";

@@ -45,7 +45,7 @@ export function CodePanel({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [collapsedHeight, highlightedHtml]);
+  }, [collapsedHeight]);
 
   const shouldClamp = isOverflowing && !expanded;
 

@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import { CodeTabs } from "@/components/docs/code-tabs";
-import { REGISTRY_ALIAS, REGISTRY_HOMEPAGE } from "@/lib/registry-config";
 import { docsSetup } from "@/lib/docs-setup.generated";
+import { REGISTRY_ALIAS, REGISTRY_HOMEPAGE } from "@/lib/registry-config";
 
 export const dynamic = "force-static";
+
+export const metadata: Metadata = {
+  title: "Setup - Arni",
+  description:
+    "Set up the Arni registry in your project and install components directly with the shadcn CLI.",
+};
 
 export default function SetupPage() {
   const { componentsJsonExample, componentsJsonHtml, installTabs } = docsSetup;

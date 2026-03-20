@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CodeTabs } from "@/components/docs/code-tabs";
 import { ComponentPreview } from "@/components/docs/component-preview";
@@ -13,6 +14,27 @@ export const dynamicParams = false;
 
 export function generateStaticParams() {
   return getAllComponentSlugs().map((slug: string) => ({ slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const pageData = await getDocsComponentPageData(slug);
+
+  if (!pageData) {
+    return {
+      title: "Component - Arni",
+      description: "Browse component documentation from the Arni registry.",
+    };
+  }
+
+  return {
+    title: `${pageData.component.name} - Arni`,
+    description: pageData.component.description,
+  };
 }
 
 export default async function ComponentPage({
