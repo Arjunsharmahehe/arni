@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CodeTabs } from "@/components/docs/code-tabs";
 import { docsSetup } from "@/lib/docs-setup.generated";
 import { REGISTRY_ALIAS, REGISTRY_HOMEPAGE } from "@/lib/registry-config";
+import Link from "next/link";
 
 export const dynamic = "force-static";
 
@@ -55,17 +56,22 @@ export default function SetupPage() {
         </h2>
         <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
           <li>
-            The registry alias defaults to <code>{REGISTRY_ALIAS}</code>. Rename
-            it if needed, and keep command examples in sync.
+            The registry alias defaults to <code>{REGISTRY_ALIAS}</code>.
+            Renaming it may lead to broken component references.
           </li>
           <li>
-            If your components have <code>registryDependencies</code>, the CLI
-            resolves and installs those items automatically.
+            If you find a bug, please report it on the{" "}
+            <Link
+              className="font-bold hover:underline"
+              href="https://github.com/arjunsharmahehe/arni/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub issue tracker
+            </Link>
+            .
           </li>
-          <li>
-            For local testing, point the alias to your local registry URL, for
-            example <code>{`${REGISTRY_HOMEPAGE}/r/{name}.json`}</code>.
-          </li>
+          <li>This is a open-source project, contributions are welcome!</li>
         </ul>
       </div>
     </div>
