@@ -1,9 +1,9 @@
 "use client";
 
+import { Minus, Square, TerminalIcon, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Minus, Square, TerminalIcon, X } from "lucide-react";
 
 export type TerminalVariant = "mac" | "windows" | "linux";
 export type TerminalWindowNameAlign = "left" | "center" | "right";
@@ -242,7 +242,7 @@ export function Terminal({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5",
+          "h-90 overflow-y-auto p-4 font-mono text-[13px] leading-6 text-neutral-300 md:p-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-neutral-900 dark:[&::-webkit-scrollbar-track]:bg-transparent dark:[&::-webkit-scrollbar-thumb]:bg-neutral-900",
           backgroundVariant === "gradient"
             ? "bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.28),rgba(10,10,10,0.96)_42%)]"
             : "bg-neutral-950",
@@ -272,7 +272,7 @@ export function Terminal({
             />
           ) : null}
 
-          {phase !== "typing"
+          {phase !== "typing" && !finalizedCurrentCommand
             ? liveOutputEntries.map((entry) => (
                 <OutputLine key={entry.id} line={entry.line} />
               ))
