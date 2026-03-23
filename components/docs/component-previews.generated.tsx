@@ -13,6 +13,11 @@ const previews: Record<string, React.ComponentType> = {
       default: module.DiffViewerPreview,
     })),
   ),
+  "editable-heading": dynamic(() =>
+    import("@/registry/base-vega/editable-heading/preview").then((module) => ({
+      default: module.EditableHeadingPreview,
+    })),
+  ),
   "floating-navbar": dynamic(() =>
     import("@/registry/base-vega/floating-navbar/preview").then((module) => ({
       default: module.FloatingNavbarPreview,

@@ -16,6 +16,13 @@ export const componentNavigation: ComponentNavMeta[] = [
     categories: ["code", "marketing"],
   },
   {
+    slug: "editable-heading",
+    name: "Editable Heading",
+    description:
+      "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
+    categories: ["text"],
+  },
+  {
     slug: "floating-navbar",
     name: "Floating Navbar",
     description:

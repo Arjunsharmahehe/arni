@@ -199,6 +199,33 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "editable-heading",
+      "type": "registry:component",
+      "title": "Editable Heading",
+      "description": "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
+      "dependencies": ["motion", "lucide-react"],
+      "registryDependencies": ["toggle-group"],
+      "categories": ["text"],
+      "files": [
+        {
+          "path": "registry/base-vega/editable-heading/editable-heading.tsx",
+          "type": "registry:component",
+          "target": "components/text/editable-heading.tsx"
+        }
+      ],
+      "meta": {
+        "docs": {
+          "previewPath": "registry/base-vega/editable-heading/preview.tsx",
+          "previewExportName": "EditableHeadingPreview",
+          "usagePath": "registry/base-vega/editable-heading/usage.tsx",
+          "sourcePath": "registry/base-vega/editable-heading/editable-heading.tsx",
+          "props": [],
+          "subComponents": []
+        }
+      }
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "floating-navbar",
       "type": "registry:component",
       "title": "Floating Navbar",

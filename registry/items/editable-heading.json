@@ -1,0 +1,69 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "editable-heading",
+  "type": "registry:component",
+  "title": "Editable Heading",
+  "description": "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
+  "dependencies": ["motion", "lucide-react"],
+  "registryDependencies": ["toggle-group"],
+  "categories": ["text"],
+  "files": [
+    {
+      "path": "registry/base-vega/editable-heading/editable-heading.tsx",
+      "type": "registry:component",
+      "target": "components/text/editable-heading.tsx"
+    }
+  ],
+  "meta": {
+    "docs": {
+      "previewPath": "registry/base-vega/editable-heading/preview.tsx",
+      "previewExportName": "EditableHeadingPreview",
+      "usagePath": "registry/base-vega/editable-heading/usage.tsx",
+      "sourcePath": "registry/base-vega/editable-heading/editable-heading.tsx",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "default": "\"Versatility\"",
+          "description": "The text content displayed in the heading"
+        },
+        {
+          "name": "defaultBold",
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial bold state"
+        },
+        {
+          "name": "defaultItalic",
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial italic state"
+        },
+        {
+          "name": "defaultUnderline",
+          "type": "boolean",
+          "default": "false",
+          "description": "Initial underline state"
+        },
+        {
+          "name": "defaultAlign",
+          "type": "\"left\" | \"center\" | \"right\"",
+          "default": "\"center\"",
+          "description": "Initial text alignment"
+        },
+        {
+          "name": "defaultFontSize",
+          "type": "\"sm\" | \"base\" | \"lg\" | \"xl\" | \"2xl\"",
+          "default": "\"base\"",
+          "description": "Initial font size"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "description": "Additional CSS classes applied to the trigger button"
+        }
+      ],
+      "subComponents": []
+    }
+  }
+}

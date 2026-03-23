@@ -5,7 +5,7 @@ export const docsSetup = {
   // ...
   },
   "registries": {
-    "@arni": "https://arniui.vercel.app/r/{name}.json"
+    "@arni": "http://localhost:3000/r/{name}.json"
   }
 }`,
   componentsJsonHtml: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#ADBAC7">{</span></span>
@@ -14,7 +14,7 @@ export const docsSetup = {
 <span class="line"><span style="color:#768390">  // ...</span></span>
 <span class="line"><span style="color:#ADBAC7">  },</span></span>
 <span class="line"><span style="color:#96D0FF">  "registries"</span><span style="color:#ADBAC7">: {</span></span>
-<span class="line"><span style="color:#8DDB8C">    "@arni"</span><span style="color:#ADBAC7">: </span><span style="color:#96D0FF">"https://arniui.vercel.app/r/{name}.json"</span></span>
+<span class="line"><span style="color:#8DDB8C">    "@arni"</span><span style="color:#ADBAC7">: </span><span style="color:#96D0FF">"http://localhost:3000/r/{name}.json"</span></span>
 <span class="line"><span style="color:#ADBAC7">  }</span></span>
 <span class="line"><span style="color:#ADBAC7">}</span></span></code></pre>`,
   installTabs: [

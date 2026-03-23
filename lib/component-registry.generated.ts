@@ -1810,6 +1810,504 @@ const highlightRules = [
     ],
   },
   {
+    slug: "editable-heading",
+    name: "Editable Heading",
+    description:
+      "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
+    categories: ["text"],
+    sourcePath: "registry/base-vega/editable-heading/editable-heading.tsx",
+    sourceCode: `"use client";
+
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Italic,
+  Underline,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
+
+type EditableHeadingFontSize = "sm" | "base" | "lg" | "xl" | "2xl";
+type EditableHeadingAlign = "left" | "center" | "right";
+
+interface EditableHeadingProps {
+  text?: string;
+  defaultBold?: boolean;
+  defaultItalic?: boolean;
+  defaultUnderline?: boolean;
+  defaultAlign?: EditableHeadingAlign;
+  defaultFontSize?: EditableHeadingFontSize;
+  className?: string;
+}
+
+const fontSizeMap: Record<EditableHeadingFontSize, string> = {
+  sm: "text-sm",
+  base: "text-base",
+  lg: "text-lg",
+  xl: "text-xl",
+  "2xl": "text-2xl",
+};
+
+const fontSizeLabels: Record<EditableHeadingFontSize, string> = {
+  sm: "S",
+  base: "M",
+  lg: "L",
+  xl: "XL",
+  "2xl": "2X",
+};
+
+export function EditableHeading({
+  text = "Versatility",
+  defaultBold = false,
+  defaultItalic = false,
+  defaultUnderline = false,
+  defaultAlign = "center",
+  defaultFontSize = "base",
+  className,
+}: EditableHeadingProps) {
+  const [open, setOpen] = useState(false);
+  const [bold, setBold] = useState(defaultBold);
+  const [italic, setItalic] = useState(defaultItalic);
+  const [underline, setUnderline] = useState(defaultUnderline);
+  const [align, setAlign] = useState<EditableHeadingAlign>(defaultAlign);
+  const [fontSize, setFontSize] =
+    useState<EditableHeadingFontSize>(defaultFontSize);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (
+      containerRef.current &&
+      !containerRef.current.contains(e.target as Node)
+    ) {
+      setOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, handleClickOutside]);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          "w-full border border-dashed bg-transparent px-3 py-2 text-center shadow-xs transition-all outline-none",
+          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          "hover:border-ring/50 cursor-pointer",
+          fontSizeMap[fontSize],
+          bold && "font-bold",
+          italic && "italic",
+          underline && "underline underline-offset-2",
+          className,
+        )}
+        style={{ textAlign: align }}
+      >
+        {text}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute -top-15 left-9.5 -right-18 z-50 mt-1 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-900 bg-background p-2 shadow-md"
+          >
+            <ToggleGroup
+              multiple
+              variant="outline"
+              size="sm"
+              value={[
+                ...(bold ? (["bold"] as const) : []),
+                ...(italic ? (["italic"] as const) : []),
+                ...(underline ? (["underline"] as const) : []),
+              ]}
+              onValueChange={(values: string[]) => {
+                setBold(values.includes("bold"));
+                setItalic(values.includes("italic"));
+                setUnderline(values.includes("underline"));
+              }}
+            >
+              <ToggleGroupItem value="bold" aria-label="Toggle bold">
+                <Bold />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="italic" aria-label="Toggle italic">
+                <Italic />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="underline" aria-label="Toggle underline">
+                <Underline />
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <div className="h-6 w-px bg-border" />
+
+            <ToggleGroup
+              variant="outline"
+              size="sm"
+              value={[align]}
+              onValueChange={(values: string[]) => {
+                if (values.length > 0) {
+                  setAlign(values[values.length - 1] as EditableHeadingAlign);
+                }
+              }}
+            >
+              <ToggleGroupItem value="left" aria-label="Align left">
+                <AlignLeft />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="center" aria-label="Align center">
+                <AlignCenter />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="right" aria-label="Align right">
+                <AlignRight />
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            <div className="h-6 w-px bg-border" />
+
+            <ToggleGroup
+              variant="outline"
+              size="sm"
+              value={[fontSize]}
+              onValueChange={(values: string[]) => {
+                if (values.length > 0) {
+                  setFontSize(
+                    values[values.length - 1] as EditableHeadingFontSize,
+                  );
+                }
+              }}
+            >
+              {(Object.keys(fontSizeLabels) as EditableHeadingFontSize[]).map(
+                (size) => (
+                  <ToggleGroupItem
+                    key={size}
+                    value={size}
+                    aria-label={\`Font size \${fontSizeLabels[size]}\`}
+                    className="min-w-8"
+                  >
+                    {fontSizeLabels[size]}
+                  </ToggleGroupItem>
+                ),
+              )}
+            </ToggleGroup>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export type { EditableHeadingFontSize, EditableHeadingAlign };`,
+    installCommands: {
+      npx: "npx shadcn@latest add @arni/editable-heading",
+      pnpm: "pnpm dlx shadcn@latest add @arni/editable-heading",
+      bun: "bunx --bun shadcn@latest add @arni/editable-heading",
+    },
+    highlighted: {
+      usage: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { EditableHeading } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/registry/base-vega/editable-heading/editable-heading"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">// Basic usage</span></span>
+<span class="line"><span style="color:#ADBAC7">&#x3C;</span><span style="color:#8DDB8C">EditableHeading</span><span style="color:#ADBAC7"> />;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">// Custom text</span></span>
+<span class="line"><span style="color:#ADBAC7">&#x3C;</span><span style="color:#8DDB8C">EditableHeading</span><span style="color:#6CB6FF"> text</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Welcome to the Future"</span><span style="color:#ADBAC7"> />;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">// With default styling</span></span>
+<span class="line"><span style="color:#ADBAC7">&#x3C;</span><span style="color:#8DDB8C">EditableHeading</span></span>
+<span class="line"><span style="color:#6CB6FF">  text</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Styled Heading"</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultBold</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultAlign</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"left"</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultFontSize</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"xl"</span></span>
+<span class="line"><span style="color:#ADBAC7">/>;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">// Full customization</span></span>
+<span class="line"><span style="color:#ADBAC7">&#x3C;</span><span style="color:#8DDB8C">EditableHeading</span></span>
+<span class="line"><span style="color:#6CB6FF">  text</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Get Started"</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultBold</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultItalic</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultUnderline</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultAlign</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"center"</span></span>
+<span class="line"><span style="color:#6CB6FF">  defaultFontSize</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"2xl"</span></span>
+<span class="line"><span style="color:#6CB6FF">  className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"font-mono"</span></span>
+<span class="line"><span style="color:#ADBAC7">/>;</span></span></code></pre>`,
+      source: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#96D0FF">"use client"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">  AlignCenter,</span></span>
+<span class="line"><span style="color:#ADBAC7">  AlignLeft,</span></span>
+<span class="line"><span style="color:#ADBAC7">  AlignRight,</span></span>
+<span class="line"><span style="color:#ADBAC7">  Bold,</span></span>
+<span class="line"><span style="color:#ADBAC7">  Italic,</span></span>
+<span class="line"><span style="color:#ADBAC7">  Underline,</span></span>
+<span class="line"><span style="color:#ADBAC7">} </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { AnimatePresence, motion } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "motion/react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useCallback, useEffect, useRef, useState } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "react"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { ToggleGroup, ToggleGroupItem } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/components/ui/toggle-group"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { cn } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/lib/utils"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">type</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "sm"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "base"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "lg"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "xl"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "2xl"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">type</span><span style="color:#F69D50"> EditableHeadingAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "left"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "center"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "right"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">interface</span><span style="color:#F69D50"> EditableHeadingProps</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F69D50">  text</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  defaultBold</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  defaultItalic</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  defaultUnderline</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> boolean</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  defaultAlign</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> EditableHeadingAlign</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  defaultFontSize</span><span style="color:#F47067">?:</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F69D50">  className</span><span style="color:#F47067">?:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">const</span><span style="color:#6CB6FF"> fontSizeMap</span><span style="color:#F47067">:</span><span style="color:#F69D50"> Record</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">EditableHeadingFontSize</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">> </span><span style="color:#F47067">=</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">  sm: </span><span style="color:#96D0FF">"text-sm"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  base: </span><span style="color:#96D0FF">"text-base"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  lg: </span><span style="color:#96D0FF">"text-lg"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  xl: </span><span style="color:#96D0FF">"text-xl"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">  "2xl"</span><span style="color:#ADBAC7">: </span><span style="color:#96D0FF">"text-2xl"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">const</span><span style="color:#6CB6FF"> fontSizeLabels</span><span style="color:#F47067">:</span><span style="color:#F69D50"> Record</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">EditableHeadingFontSize</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">string</span><span style="color:#ADBAC7">> </span><span style="color:#F47067">=</span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#ADBAC7">  sm: </span><span style="color:#96D0FF">"S"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  base: </span><span style="color:#96D0FF">"M"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  lg: </span><span style="color:#96D0FF">"L"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">  xl: </span><span style="color:#96D0FF">"XL"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">  "2xl"</span><span style="color:#ADBAC7">: </span><span style="color:#96D0FF">"2X"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> function</span><span style="color:#DCBDFB"> EditableHeading</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#F69D50">  text</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "Versatility"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  defaultBold</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> false</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  defaultItalic</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> false</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  defaultUnderline</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> false</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  defaultAlign</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "center"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  defaultFontSize</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "base"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#F69D50">  className</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span><span style="color:#F47067">:</span><span style="color:#F69D50"> EditableHeadingProps</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">open</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setOpen</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">false</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">bold</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setBold</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(defaultBold);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">italic</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setItalic</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(defaultItalic);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">underline</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setUnderline</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">(defaultUnderline);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">align</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setAlign</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">EditableHeadingAlign</span><span style="color:#ADBAC7">>(defaultAlign);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">fontSize</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setFontSize</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span></span>
+<span class="line"><span style="color:#DCBDFB">    useState</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">EditableHeadingFontSize</span><span style="color:#ADBAC7">>(defaultFontSize);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> containerRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLDivElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> handleClickOutside</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useCallback</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">e</span><span style="color:#F47067">:</span><span style="color:#F69D50"> MouseEvent</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">      containerRef.current </span><span style="color:#F47067">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#F47067">      !</span><span style="color:#ADBAC7">containerRef.current.</span><span style="color:#DCBDFB">contains</span><span style="color:#ADBAC7">(e.target </span><span style="color:#F47067">as</span><span style="color:#F69D50"> Node</span><span style="color:#ADBAC7">)</span></span>
+<span class="line"><span style="color:#ADBAC7">    ) {</span></span>
+<span class="line"><span style="color:#DCBDFB">      setOpen</span><span style="color:#ADBAC7">(</span><span style="color:#6CB6FF">false</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, []);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">  useEffect</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">open) </span><span style="color:#F47067">return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">    document.</span><span style="color:#DCBDFB">addEventListener</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"mousedown"</span><span style="color:#ADBAC7">, handleClickOutside);</span></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> document.</span><span style="color:#DCBDFB">removeEventListener</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"mousedown"</span><span style="color:#ADBAC7">, handleClickOutside);</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, [open, handleClickOutside]);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">containerRef</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"relative w-full"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">button</span></span>
+<span class="line"><span style="color:#6CB6FF">        type</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"button"</span></span>
+<span class="line"><span style="color:#6CB6FF">        onClick</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">() </span><span style="color:#F47067">=></span><span style="color:#DCBDFB"> setOpen</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">prev</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">prev)</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">          "w-full border border-dashed bg-transparent px-3 py-2 text-center shadow-xs transition-all outline-none"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">          "hover:border-ring/50 cursor-pointer"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          fontSizeMap[fontSize],</span></span>
+<span class="line"><span style="color:#ADBAC7">          bold </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#96D0FF"> "font-bold"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          italic </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#96D0FF"> "italic"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          underline </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#96D0FF"> "underline underline-offset-2"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">          className,</span></span>
+<span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">        style</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ textAlign: align }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      ></span></span>
+<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">text</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">button</span><span style="color:#ADBAC7">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">AnimatePresence</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">open </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">motion.div</span></span>
+<span class="line"><span style="color:#6CB6FF">            initial</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, y: </span><span style="color:#F47067">-</span><span style="color:#6CB6FF">4</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">0.95</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            animate</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">, y: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            exit</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, y: </span><span style="color:#F47067">-</span><span style="color:#6CB6FF">4</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">0.95</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            transition</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ duration: </span><span style="color:#6CB6FF">0.15</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"easeOut"</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"absolute -top-15 left-9.5 -right-18 z-50 mt-1 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-900 bg-background p-2 shadow-md"</span></span>
+<span class="line"><span style="color:#ADBAC7">          ></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">              multiple</span></span>
+<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span></span>
+<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(bold </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(italic </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(underline </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#ADBAC7">              ]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#DCBDFB">                setBold</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#DCBDFB">                setItalic</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#DCBDFB">                setUnderline</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">            ></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bold"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle bold"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Bold</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"italic"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle italic"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Italic</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"underline"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle underline"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Underline</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[align]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                  setAlign</span><span style="color:#ADBAC7">(values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingAlign</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">                }</span></span>
+<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">            ></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"left"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align left"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignLeft</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"center"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align center"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignCenter</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"right"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align right"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignRight</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[fontSize]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                  setFontSize</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                    values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                  );</span></span>
+<span class="line"><span style="color:#ADBAC7">                }</span></span>
+<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">            ></span></span>
+<span class="line"><span style="color:#F47067">              {</span><span style="color:#ADBAC7">(Object.</span><span style="color:#DCBDFB">keys</span><span style="color:#ADBAC7">(fontSizeLabels) </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">[]).</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                (</span><span style="color:#F69D50">size</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span></span>
+<span class="line"><span style="color:#6CB6FF">                    key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                    value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                    aria-label</span><span style="color:#F47067">={</span><span style="color:#96D0FF">\`Font size \${</span><span style="color:#ADBAC7">fontSizeLabels</span><span style="color:#96D0FF">[</span><span style="color:#ADBAC7">size</span><span style="color:#96D0FF">]</span><span style="color:#96D0FF">}\`</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                    className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"min-w-8"</span></span>
+<span class="line"><span style="color:#ADBAC7">                  ></span></span>
+<span class="line"><span style="color:#F47067">                    {</span><span style="color:#ADBAC7">fontSizeLabels[size]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                ),</span></span>
+<span class="line"><span style="color:#ADBAC7">              )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">motion.div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">AnimatePresence</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">export</span><span style="color:#F47067"> type</span><span style="color:#ADBAC7"> { EditableHeadingFontSize, EditableHeadingAlign };</span></span></code></pre>`,
+      install: {
+        npx: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">npx</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/editable-heading</span></span></code></pre>`,
+        pnpm: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">pnpm</span><span style="color:#96D0FF"> dlx</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/editable-heading</span></span></code></pre>`,
+        bun: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#F69D50">bunx</span><span style="color:#6CB6FF"> --bun</span><span style="color:#96D0FF"> shadcn@latest</span><span style="color:#96D0FF"> add</span><span style="color:#96D0FF"> @arni/editable-heading</span></span></code></pre>`,
+      },
+    },
+    usage: `import { EditableHeading } from "@/registry/base-vega/editable-heading/editable-heading";
+
+// Basic usage
+<EditableHeading />;
+
+// Custom text
+<EditableHeading text="Welcome to the Future" />;
+
+// With default styling
+<EditableHeading
+  text="Styled Heading"
+  defaultBold
+  defaultAlign="left"
+  defaultFontSize="xl"
+/>;
+
+// Full customization
+<EditableHeading
+  text="Get Started"
+  defaultBold
+  defaultItalic
+  defaultUnderline
+  defaultAlign="center"
+  defaultFontSize="2xl"
+  className="font-mono"
+/>;`,
+    props: [
+      {
+        name: "text",
+        type: "string",
+        default: '"Versatility"',
+        description: "The text content displayed in the heading",
+      },
+      {
+        name: "defaultBold",
+        type: "boolean",
+        default: "false",
+        description: "Initial bold state",
+      },
+      {
+        name: "defaultItalic",
+        type: "boolean",
+        default: "false",
+        description: "Initial italic state",
+      },
+      {
+        name: "defaultUnderline",
+        type: "boolean",
+        default: "false",
+        description: "Initial underline state",
+      },
+      {
+        name: "defaultAlign",
+        type: '"left" | "center" | "right"',
+        default: '"center"',
+        description: "Initial text alignment",
+      },
+      {
+        name: "defaultFontSize",
+        type: '"sm" | "base" | "lg" | "xl" | "2xl"',
+        default: '"base"',
+        description: "Initial font size",
+      },
+      {
+        name: "className",
+        type: "string",
+        description: "Additional CSS classes applied to the trigger button",
+      },
+    ],
+    subComponents: [],
+  },
+  {
     slug: "floating-navbar",
     name: "Floating Navbar",
     description:
