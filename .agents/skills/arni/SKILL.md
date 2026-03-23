@@ -61,12 +61,31 @@ Do not hand-edit generated files unless explicitly debugging generation output.
 - Interactive:
   - `pnpm components:add`
 - Non-interactive (preferred for agents):
-  - `pnpm components:add -- --slug my-component --title "My Component" --description "..." --type registry:component --sourcePath registry/base-vega/my-component/my-component.tsx --usagePath registry/base-vega/my-component/usage.tsx --previewPath registry/base-vega/my-component/preview.tsx --wrapperPath components/ui/my-component.tsx`
+  - `pnpm components:add -- --slug my-component --title "My Component" --description "..." --type registry:component --sourcePath registry/base-vega/my-component/my-component.tsx --wrapperPath components/ui/my-component.tsx --usagePath registry/base-vega/my-component/usage.tsx --previewPath registry/base-vega/my-component/preview.tsx --previewExportName MyComponentPreview --fileType registry:component --categories text,marketing --dependencies motion,lucide-react --registryDependencies toggle-group,button`
+
+#### Available flags
+
+| Flag | Description |
+|---|---|
+| `--slug` | Kebab-case component identifier (required) |
+| `--title` | Human-readable title (auto-derived from slug) |
+| `--description` | Component description |
+| `--type` | Registry item type, e.g. `registry:component` |
+| `--sourcePath` | Path to the source file |
+| `--wrapperPath` | Path for the wrapper file (always provide this, ask the user where they want it to be) |
+| `--no-wrapper` | Tells to script to not create a wrapper (only if the user asks) |
+| `--fileType` | File type for the primary entry, e.g. `registry:ui`, `registry:component` |
+| `--usagePath` | Path to the usage snippet file |
+| `--previewPath` | Path to the preview component file |
+| `--previewExportName` | Named export for the preview component |
+| `--dependencies` | Comma-separated npm dependencies |
+| `--categories` | Comma-separated navigation categories |
+| `--registryDependencies` | Comma-separated shadcn registry dependencies |
 
 What `components:add` does:
 - creates `registry/items/<slug>.json`
 - creates source/usage/preview stubs when missing
-- creates a wrapper file unless `--no-wrapper`
+- creates a wrapper file (unless you pass --no-wrapper). 
 - derives install `target` from wrapper path
 - regenerates docs/registry outputs
 
