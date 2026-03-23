@@ -219,7 +219,49 @@
           "previewExportName": "EditableHeadingPreview",
           "usagePath": "registry/base-vega/editable-heading/usage.tsx",
           "sourcePath": "registry/base-vega/editable-heading/editable-heading.tsx",
-          "props": [],
+          "props": [
+            {
+              "name": "text",
+              "type": "string",
+              "default": "\"Versatility\"",
+              "description": "The text content displayed in the heading"
+            },
+            {
+              "name": "defaultBold",
+              "type": "boolean",
+              "default": "false",
+              "description": "Initial bold state"
+            },
+            {
+              "name": "defaultItalic",
+              "type": "boolean",
+              "default": "false",
+              "description": "Initial italic state"
+            },
+            {
+              "name": "defaultUnderline",
+              "type": "boolean",
+              "default": "false",
+              "description": "Initial underline state"
+            },
+            {
+              "name": "defaultAlign",
+              "type": "\"left\" | \"center\" | \"right\"",
+              "default": "\"center\"",
+              "description": "Initial text alignment"
+            },
+            {
+              "name": "defaultFontSize",
+              "type": "\"sm\" | \"base\" | \"lg\" | \"xl\" | \"2xl\"",
+              "default": "\"base\"",
+              "description": "Initial font size"
+            },
+            {
+              "name": "className",
+              "type": "string",
+              "description": "Additional CSS classes applied to the trigger button"
+            }
+          ],
           "subComponents": []
         }
       }
