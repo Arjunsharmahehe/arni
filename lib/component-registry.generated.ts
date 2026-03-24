@@ -1818,17 +1818,20 @@ const highlightRules = [
     sourcePath: "registry/base-vega/editable-heading/editable-heading.tsx",
     sourceCode: `"use client";
 
+import { Select as SelectPrimitive } from "@base-ui/react/select";
 import {
   AlignCenter,
   AlignLeft,
   AlignRight,
   Bold,
+  ChevronDown,
   Italic,
   Underline,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 type EditableHeadingFontSize = "sm" | "base" | "lg" | "xl" | "2xl";
@@ -1877,7 +1880,13 @@ export function EditableHeading({
   const [fontSize, setFontSize] =
     useState<EditableHeadingFontSize>(defaultFontSize);
 
+  const isMobile = useIsMobile();
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarPos, setToolbarPos] = useState({ left: 0, top: 0 });
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (
@@ -1894,9 +1903,48 @@ export function EditableHeading({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open, handleClickOutside]);
 
+  // Continuously measure toolbar position via rAF while open.
+  useEffect(() => {
+    if (!open) return;
+    let rafId: number;
+    const tick = () => {
+      if (!buttonRef.current || !textRef.current || !toolbarRef.current) {
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const textRect = textRef.current.getBoundingClientRect();
+      const toolbarRect = toolbarRef.current.getBoundingClientRect();
+
+      const pad = 8;
+      const gap = 4;
+      const viewportWidth = document.documentElement.clientWidth;
+
+      // Desired center = text's center in viewport coords
+      const desiredCenterX = textRect.left + textRect.width / 2;
+
+      // Clamp so toolbar stays fully inside the viewport
+      const clampedCenterX = Math.max(
+        toolbarRect.width / 2 + pad,
+        Math.min(viewportWidth - toolbarRect.width / 2 - pad, desiredCenterX),
+      );
+
+      setToolbarPos({
+        left: clampedCenterX - toolbarRect.width / 2,
+        top: buttonRect.top - toolbarRect.height - gap,
+      });
+
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [open]);
+
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className="w-full">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
@@ -1911,94 +1959,161 @@ export function EditableHeading({
         )}
         style={{ textAlign: align }}
       >
-        {text}
+        <span ref={textRef}>{text}</span>
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0, y: -4, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              left: toolbarPos.left,
+              top: toolbarPos.top,
+            }}
             exit={{ opacity: 0, y: -4, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute -top-15 left-9.5 -right-18 z-50 mt-1 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-900 bg-background p-2 shadow-md"
+            transition={{
+              opacity: { duration: 0.15, ease: "easeOut" },
+              scale: { duration: 0.15, ease: "easeOut" },
+              y: { duration: 0.15, ease: "easeOut" },
+              left: { type: "spring", stiffness: 300, damping: 30 },
+              top: { duration: 0 },
+            }}
+            style={{ position: "fixed", zIndex: 50 }}
           >
-            <ToggleGroup
-              multiple
-              variant="outline"
-              size="sm"
-              value={[
-                ...(bold ? (["bold"] as const) : []),
-                ...(italic ? (["italic"] as const) : []),
-                ...(underline ? (["underline"] as const) : []),
-              ]}
-              onValueChange={(values: string[]) => {
-                setBold(values.includes("bold"));
-                setItalic(values.includes("italic"));
-                setUnderline(values.includes("underline"));
-              }}
-            >
-              <ToggleGroupItem value="bold" aria-label="Toggle bold">
-                <Bold />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="italic" aria-label="Toggle italic">
-                <Italic />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="underline" aria-label="Toggle underline">
-                <Underline />
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            <div className="h-6 w-px bg-border" />
-
-            <ToggleGroup
-              variant="outline"
-              size="sm"
-              value={[align]}
-              onValueChange={(values: string[]) => {
-                if (values.length > 0) {
-                  setAlign(values[values.length - 1] as EditableHeadingAlign);
-                }
-              }}
-            >
-              <ToggleGroupItem value="left" aria-label="Align left">
-                <AlignLeft />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="center" aria-label="Align center">
-                <AlignCenter />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="right" aria-label="Align right">
-                <AlignRight />
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            <div className="h-6 w-px bg-border" />
-
-            <ToggleGroup
-              variant="outline"
-              size="sm"
-              value={[fontSize]}
-              onValueChange={(values: string[]) => {
-                if (values.length > 0) {
-                  setFontSize(
-                    values[values.length - 1] as EditableHeadingFontSize,
-                  );
-                }
-              }}
-            >
-              {(Object.keys(fontSizeLabels) as EditableHeadingFontSize[]).map(
-                (size) => (
-                  <ToggleGroupItem
-                    key={size}
-                    value={size}
-                    aria-label={\`Font size \${fontSizeLabels[size]}\`}
-                    className="min-w-8"
-                  >
-                    {fontSizeLabels[size]}
-                  </ToggleGroupItem>
-                ),
+            <div
+              ref={toolbarRef}
+              className={cn(
+                "w-fit flex items-center rounded-xl border border-neutral-900 bg-background shadow-md",
+                isMobile ? "gap-1 p-1.5" : "gap-2 p-2",
               )}
-            </ToggleGroup>
+            >
+              <ToggleGroup
+                multiple
+                variant="outline"
+                size="sm"
+                value={[
+                  ...(bold ? (["bold"] as const) : []),
+                  ...(italic ? (["italic"] as const) : []),
+                  ...(underline ? (["underline"] as const) : []),
+                ]}
+                onValueChange={(values: string[]) => {
+                  setBold(values.includes("bold"));
+                  setItalic(values.includes("italic"));
+                  setUnderline(values.includes("underline"));
+                }}
+              >
+                <ToggleGroupItem value="bold" aria-label="Toggle bold">
+                  <Bold />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="italic" aria-label="Toggle italic">
+                  <Italic />
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="underline"
+                  aria-label="Toggle underline"
+                >
+                  <Underline />
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <div className="h-6 w-px bg-border" />
+
+              <ToggleGroup
+                variant="outline"
+                size="sm"
+                value={[align]}
+                onValueChange={(values: string[]) => {
+                  if (values.length > 0) {
+                    setAlign(values[values.length - 1] as EditableHeadingAlign);
+                  }
+                }}
+              >
+                <ToggleGroupItem value="left" aria-label="Align left">
+                  <AlignLeft />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="center" aria-label="Align center">
+                  <AlignCenter />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="right" aria-label="Align right">
+                  <AlignRight />
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              <div className="h-6 w-px bg-border" />
+
+              {isMobile ? (
+                <SelectPrimitive.Root
+                  value={fontSize}
+                  onValueChange={(v) => {
+                    if (v) setFontSize(v as EditableHeadingFontSize);
+                  }}
+                  items={fontSizeLabels}
+                  modal={false}
+                >
+                  <SelectPrimitive.Trigger
+                    className={cn(
+                      "inline-flex items-center justify-center gap-1 rounded-md border border-input bg-transparent shadow-xs",
+                      "hover:bg-muted cursor-pointer outline-none",
+                      "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      "h-7 min-w-7 px-1.5 text-xs",
+                    )}
+                  >
+                    <SelectPrimitive.Value />
+                    <ChevronDown className="size-3 opacity-50" />
+                  </SelectPrimitive.Trigger>
+                  <SelectPrimitive.Portal>
+                    <SelectPrimitive.Positioner>
+                      <SelectPrimitive.Popup className="z-[100] min-w-[var(--anchor-width)] rounded-xl border border-neutral-900 bg-background p-1 shadow-md">
+                        {(
+                          Object.keys(
+                            fontSizeLabels,
+                          ) as EditableHeadingFontSize[]
+                        ).map((size) => (
+                          <SelectPrimitive.Item
+                            key={size}
+                            value={size}
+                            className="flex items-center justify-center rounded-md px-2 py-1 text-xs cursor-pointer hover:bg-muted data-[highlighted]:bg-muted outline-none"
+                          >
+                            <SelectPrimitive.ItemText>
+                              {fontSizeLabels[size]}
+                            </SelectPrimitive.ItemText>
+                          </SelectPrimitive.Item>
+                        ))}
+                      </SelectPrimitive.Popup>
+                    </SelectPrimitive.Positioner>
+                  </SelectPrimitive.Portal>
+                </SelectPrimitive.Root>
+              ) : (
+                <ToggleGroup
+                  variant="outline"
+                  size="sm"
+                  value={[fontSize]}
+                  onValueChange={(values: string[]) => {
+                    if (values.length > 0) {
+                      setFontSize(
+                        values[values.length - 1] as EditableHeadingFontSize,
+                      );
+                    }
+                  }}
+                >
+                  {(
+                    Object.keys(fontSizeLabels) as EditableHeadingFontSize[]
+                  ).map((size) => (
+                    <ToggleGroupItem
+                      key={size}
+                      value={size}
+                      aria-label={\`Font size \${fontSizeLabels[size]}\`}
+                      className="min-w-8"
+                    >
+                      {fontSizeLabels[size]}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2041,17 +2156,20 @@ export type { EditableHeadingFontSize, EditableHeadingAlign };`,
 <span class="line"><span style="color:#ADBAC7">/>;</span></span></code></pre>`,
       source: `<pre class="shiki github-dark-dimmed" style="background-color:#22272e;color:#adbac7" tabindex="0"><code><span class="line"><span style="color:#96D0FF">"use client"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { Select </span><span style="color:#F47067">as</span><span style="color:#ADBAC7"> SelectPrimitive } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@base-ui/react/select"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> {</span></span>
 <span class="line"><span style="color:#ADBAC7">  AlignCenter,</span></span>
 <span class="line"><span style="color:#ADBAC7">  AlignLeft,</span></span>
 <span class="line"><span style="color:#ADBAC7">  AlignRight,</span></span>
 <span class="line"><span style="color:#ADBAC7">  Bold,</span></span>
+<span class="line"><span style="color:#ADBAC7">  ChevronDown,</span></span>
 <span class="line"><span style="color:#ADBAC7">  Italic,</span></span>
 <span class="line"><span style="color:#ADBAC7">  Underline,</span></span>
 <span class="line"><span style="color:#ADBAC7">} </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "lucide-react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { AnimatePresence, motion } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "motion/react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useCallback, useEffect, useRef, useState } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "react"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { ToggleGroup, ToggleGroupItem } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/components/ui/toggle-group"</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { useIsMobile } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/hooks/use-mobile"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#F47067">import</span><span style="color:#ADBAC7"> { cn } </span><span style="color:#F47067">from</span><span style="color:#96D0FF"> "@/lib/utils"</span><span style="color:#ADBAC7">;</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#F47067">type</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#F47067"> =</span><span style="color:#96D0FF"> "sm"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "base"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "lg"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "xl"</span><span style="color:#F47067"> |</span><span style="color:#96D0FF"> "2xl"</span><span style="color:#ADBAC7">;</span></span>
@@ -2100,7 +2218,13 @@ export type { EditableHeadingFontSize, EditableHeadingAlign };`,
 <span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">fontSize</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setFontSize</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span></span>
 <span class="line"><span style="color:#DCBDFB">    useState</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">EditableHeadingFontSize</span><span style="color:#ADBAC7">>(defaultFontSize);</span></span>
 <span class="line"></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> isMobile</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useIsMobile</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"></span>
 <span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> containerRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLDivElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> buttonRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLButtonElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> textRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLSpanElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> toolbarRef</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useRef</span><span style="color:#ADBAC7">&#x3C;</span><span style="color:#F69D50">HTMLDivElement</span><span style="color:#ADBAC7">>(</span><span style="color:#6CB6FF">null</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#F47067">  const</span><span style="color:#ADBAC7"> [</span><span style="color:#6CB6FF">toolbarPos</span><span style="color:#ADBAC7">, </span><span style="color:#6CB6FF">setToolbarPos</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> useState</span><span style="color:#ADBAC7">({ left: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, top: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7"> });</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#F47067">  const</span><span style="color:#6CB6FF"> handleClickOutside</span><span style="color:#F47067"> =</span><span style="color:#DCBDFB"> useCallback</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">e</span><span style="color:#F47067">:</span><span style="color:#F69D50"> MouseEvent</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
 <span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span></span>
@@ -2117,9 +2241,48 @@ export type { EditableHeadingFontSize, EditableHeadingAlign };`,
 <span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> document.</span><span style="color:#DCBDFB">removeEventListener</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"mousedown"</span><span style="color:#ADBAC7">, handleClickOutside);</span></span>
 <span class="line"><span style="color:#ADBAC7">  }, [open, handleClickOutside]);</span></span>
 <span class="line"></span>
+<span class="line"><span style="color:#768390">  // Continuously measure toolbar position via rAF while open.</span></span>
+<span class="line"><span style="color:#DCBDFB">  useEffect</span><span style="color:#ADBAC7">(() </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">    if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">open) </span><span style="color:#F47067">return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">    let</span><span style="color:#ADBAC7"> rafId</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> number</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">    const</span><span style="color:#DCBDFB"> tick</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">      if</span><span style="color:#ADBAC7"> (</span><span style="color:#F47067">!</span><span style="color:#ADBAC7">buttonRef.current </span><span style="color:#F47067">||</span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">textRef.current </span><span style="color:#F47067">||</span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">toolbarRef.current) {</span></span>
+<span class="line"><span style="color:#ADBAC7">        rafId </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> requestAnimationFrame</span><span style="color:#ADBAC7">(tick);</span></span>
+<span class="line"><span style="color:#F47067">        return</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#ADBAC7">      }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> buttonRect</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> buttonRef.current.</span><span style="color:#DCBDFB">getBoundingClientRect</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> textRect</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> textRef.current.</span><span style="color:#DCBDFB">getBoundingClientRect</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> toolbarRect</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> toolbarRef.current.</span><span style="color:#DCBDFB">getBoundingClientRect</span><span style="color:#ADBAC7">();</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> pad</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> 8</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> gap</span><span style="color:#F47067"> =</span><span style="color:#6CB6FF"> 4</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> viewportWidth</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> document.documentElement.clientWidth;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">      // Desired center = text's center in viewport coords</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> desiredCenterX</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> textRect.left </span><span style="color:#F47067">+</span><span style="color:#ADBAC7"> textRect.width </span><span style="color:#F47067">/</span><span style="color:#6CB6FF"> 2</span><span style="color:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#768390">      // Clamp so toolbar stays fully inside the viewport</span></span>
+<span class="line"><span style="color:#F47067">      const</span><span style="color:#6CB6FF"> clampedCenterX</span><span style="color:#F47067"> =</span><span style="color:#ADBAC7"> Math.</span><span style="color:#DCBDFB">max</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">        toolbarRect.width </span><span style="color:#F47067">/</span><span style="color:#6CB6FF"> 2</span><span style="color:#F47067"> +</span><span style="color:#ADBAC7"> pad,</span></span>
+<span class="line"><span style="color:#ADBAC7">        Math.</span><span style="color:#DCBDFB">min</span><span style="color:#ADBAC7">(viewportWidth </span><span style="color:#F47067">-</span><span style="color:#ADBAC7"> toolbarRect.width </span><span style="color:#F47067">/</span><span style="color:#6CB6FF"> 2</span><span style="color:#F47067"> -</span><span style="color:#ADBAC7"> pad, desiredCenterX),</span></span>
+<span class="line"><span style="color:#ADBAC7">      );</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#DCBDFB">      setToolbarPos</span><span style="color:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#ADBAC7">        left: clampedCenterX </span><span style="color:#F47067">-</span><span style="color:#ADBAC7"> toolbarRect.width </span><span style="color:#F47067">/</span><span style="color:#6CB6FF"> 2</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">        top: buttonRect.top </span><span style="color:#F47067">-</span><span style="color:#ADBAC7"> toolbarRect.height </span><span style="color:#F47067">-</span><span style="color:#ADBAC7"> gap,</span></span>
+<span class="line"><span style="color:#ADBAC7">      });</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">      rafId </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> requestAnimationFrame</span><span style="color:#ADBAC7">(tick);</span></span>
+<span class="line"><span style="color:#ADBAC7">    };</span></span>
+<span class="line"><span style="color:#ADBAC7">    rafId </span><span style="color:#F47067">=</span><span style="color:#DCBDFB"> requestAnimationFrame</span><span style="color:#ADBAC7">(tick);</span></span>
+<span class="line"><span style="color:#F47067">    return</span><span style="color:#ADBAC7"> () </span><span style="color:#F47067">=></span><span style="color:#DCBDFB"> cancelAnimationFrame</span><span style="color:#ADBAC7">(rafId);</span></span>
+<span class="line"><span style="color:#ADBAC7">  }, [open]);</span></span>
+<span class="line"></span>
 <span class="line"><span style="color:#F47067">  return</span><span style="color:#ADBAC7"> (</span></span>
-<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">containerRef</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"relative w-full"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">    &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">containerRef</span><span style="color:#F47067">}</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"w-full"</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">button</span></span>
+<span class="line"><span style="color:#6CB6FF">        ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">buttonRef</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">        type</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"button"</span></span>
 <span class="line"><span style="color:#6CB6FF">        onClick</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">() </span><span style="color:#F47067">=></span><span style="color:#DCBDFB"> setOpen</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">prev</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#F47067"> !</span><span style="color:#ADBAC7">prev)</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">        className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
@@ -2134,94 +2297,161 @@ export type { EditableHeadingFontSize, EditableHeadingAlign };`,
 <span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">        style</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ textAlign: align }</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#ADBAC7">      ></span></span>
-<span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">text</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">        &#x3C;</span><span style="color:#8DDB8C">span</span><span style="color:#6CB6FF"> ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">textRef</span><span style="color:#F47067">}</span><span style="color:#ADBAC7">></span><span style="color:#F47067">{</span><span style="color:#ADBAC7">text</span><span style="color:#F47067">}</span><span style="color:#ADBAC7">&#x3C;/</span><span style="color:#8DDB8C">span</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">button</span><span style="color:#ADBAC7">></span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#ADBAC7">      &#x3C;</span><span style="color:#8DDB8C">AnimatePresence</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#F47067">        {</span><span style="color:#ADBAC7">open </span><span style="color:#F47067">&#x26;&#x26;</span><span style="color:#ADBAC7"> (</span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;</span><span style="color:#8DDB8C">motion.div</span></span>
 <span class="line"><span style="color:#6CB6FF">            initial</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, y: </span><span style="color:#F47067">-</span><span style="color:#6CB6FF">4</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">0.95</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">            animate</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">, y: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            animate</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#ADBAC7">              opacity: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">              y: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">              scale: </span><span style="color:#6CB6FF">1</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">              left: toolbarPos.left,</span></span>
+<span class="line"><span style="color:#ADBAC7">              top: toolbarPos.top,</span></span>
+<span class="line"><span style="color:#ADBAC7">            }</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#6CB6FF">            exit</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ opacity: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7">, y: </span><span style="color:#F47067">-</span><span style="color:#6CB6FF">4</span><span style="color:#ADBAC7">, scale: </span><span style="color:#6CB6FF">0.95</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">            transition</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ duration: </span><span style="color:#6CB6FF">0.15</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"easeOut"</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">            className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"absolute -top-15 left-9.5 -right-18 z-50 mt-1 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-900 bg-background p-2 shadow-md"</span></span>
+<span class="line"><span style="color:#6CB6FF">            transition</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#ADBAC7">              opacity: { duration: </span><span style="color:#6CB6FF">0.15</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"easeOut"</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">              scale: { duration: </span><span style="color:#6CB6FF">0.15</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"easeOut"</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">              y: { duration: </span><span style="color:#6CB6FF">0.15</span><span style="color:#ADBAC7">, ease: </span><span style="color:#96D0FF">"easeOut"</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">              left: { type: </span><span style="color:#96D0FF">"spring"</span><span style="color:#ADBAC7">, stiffness: </span><span style="color:#6CB6FF">300</span><span style="color:#ADBAC7">, damping: </span><span style="color:#6CB6FF">30</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">              top: { duration: </span><span style="color:#6CB6FF">0</span><span style="color:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#ADBAC7">            }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">            style</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">{ position: </span><span style="color:#96D0FF">"fixed"</span><span style="color:#ADBAC7">, zIndex: </span><span style="color:#6CB6FF">50</span><span style="color:#ADBAC7"> }</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#ADBAC7">          ></span></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
-<span class="line"><span style="color:#6CB6FF">              multiple</span></span>
-<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
-<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
-<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span></span>
-<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(bold </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
-<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(italic </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
-<span class="line"><span style="color:#F47067">                ...</span><span style="color:#ADBAC7">(underline </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
-<span class="line"><span style="color:#ADBAC7">              ]</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
-<span class="line"><span style="color:#DCBDFB">                setBold</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">));</span></span>
-<span class="line"><span style="color:#DCBDFB">                setItalic</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">));</span></span>
-<span class="line"><span style="color:#DCBDFB">                setUnderline</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">));</span></span>
-<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#ADBAC7">            ></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bold"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle bold"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Bold</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"italic"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle italic"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Italic</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"underline"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle underline"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">Underline</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
-<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
-<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
-<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[align]</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
-<span class="line"><span style="color:#F47067">                if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
-<span class="line"><span style="color:#DCBDFB">                  setAlign</span><span style="color:#ADBAC7">(values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingAlign</span><span style="color:#ADBAC7">);</span></span>
-<span class="line"><span style="color:#ADBAC7">                }</span></span>
-<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#ADBAC7">            ></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"left"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align left"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignLeft</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"center"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align center"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignCenter</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"right"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align right"</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">AlignRight</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
-<span class="line"><span style="color:#6CB6FF">              variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
-<span class="line"><span style="color:#6CB6FF">              size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
-<span class="line"><span style="color:#6CB6FF">              value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[fontSize]</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">              onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
-<span class="line"><span style="color:#F47067">                if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
-<span class="line"><span style="color:#DCBDFB">                  setFontSize</span><span style="color:#ADBAC7">(</span></span>
-<span class="line"><span style="color:#ADBAC7">                    values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#ADBAC7">                  );</span></span>
-<span class="line"><span style="color:#ADBAC7">                }</span></span>
-<span class="line"><span style="color:#ADBAC7">              }</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#ADBAC7">            ></span></span>
-<span class="line"><span style="color:#F47067">              {</span><span style="color:#ADBAC7">(Object.</span><span style="color:#DCBDFB">keys</span><span style="color:#ADBAC7">(fontSizeLabels) </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">[]).</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">(</span></span>
-<span class="line"><span style="color:#ADBAC7">                (</span><span style="color:#F69D50">size</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
-<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span></span>
-<span class="line"><span style="color:#6CB6FF">                    key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">                    value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">                    aria-label</span><span style="color:#F47067">={</span><span style="color:#96D0FF">\`Font size \${</span><span style="color:#ADBAC7">fontSizeLabels</span><span style="color:#96D0FF">[</span><span style="color:#ADBAC7">size</span><span style="color:#96D0FF">]</span><span style="color:#96D0FF">}\`</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#6CB6FF">                    className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"min-w-8"</span></span>
-<span class="line"><span style="color:#ADBAC7">                  ></span></span>
-<span class="line"><span style="color:#F47067">                    {</span><span style="color:#ADBAC7">fontSizeLabels[size]</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#ADBAC7">                  &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
-<span class="line"><span style="color:#ADBAC7">                ),</span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;</span><span style="color:#8DDB8C">div</span></span>
+<span class="line"><span style="color:#6CB6FF">              ref</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">toolbarRef</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">              className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">                "w-fit flex items-center rounded-xl border border-neutral-900 bg-background shadow-md"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                isMobile </span><span style="color:#F47067">?</span><span style="color:#96D0FF"> "gap-1 p-1.5"</span><span style="color:#F47067"> :</span><span style="color:#96D0FF"> "gap-2 p-2"</span><span style="color:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#ADBAC7">              )</span><span style="color:#F47067">}</span></span>
-<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">            ></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">                multiple</span></span>
+<span class="line"><span style="color:#6CB6FF">                variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">                size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">                value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[</span></span>
+<span class="line"><span style="color:#F47067">                  ...</span><span style="color:#ADBAC7">(bold </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#F47067">                  ...</span><span style="color:#ADBAC7">(italic </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#F47067">                  ...</span><span style="color:#ADBAC7">(underline </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> ([</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F47067"> const</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> []),</span></span>
+<span class="line"><span style="color:#ADBAC7">                ]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#DCBDFB">                  setBold</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"bold"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#DCBDFB">                  setItalic</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"italic"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#DCBDFB">                  setUnderline</span><span style="color:#ADBAC7">(values.</span><span style="color:#DCBDFB">includes</span><span style="color:#ADBAC7">(</span><span style="color:#96D0FF">"underline"</span><span style="color:#ADBAC7">));</span></span>
+<span class="line"><span style="color:#ADBAC7">                }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">              ></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"bold"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle bold"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">Bold</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"italic"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle italic"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">Italic</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span></span>
+<span class="line"><span style="color:#6CB6FF">                  value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"underline"</span></span>
+<span class="line"><span style="color:#6CB6FF">                  aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Toggle underline"</span></span>
+<span class="line"><span style="color:#ADBAC7">                ></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">Underline</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">                variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">                size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">                value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[align]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                  if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                    setAlign</span><span style="color:#ADBAC7">(values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingAlign</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">                  }</span></span>
+<span class="line"><span style="color:#ADBAC7">                }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">              ></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"left"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align left"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">AlignLeft</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"center"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align center"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">AlignCenter</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#6CB6FF"> value</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"right"</span><span style="color:#6CB6FF"> aria-label</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"Align right"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">AlignRight</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#ADBAC7">              &#x3C;</span><span style="color:#8DDB8C">div</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"h-6 w-px bg-border"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F47067">              {</span><span style="color:#ADBAC7">isMobile </span><span style="color:#F47067">?</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Root</span></span>
+<span class="line"><span style="color:#6CB6FF">                  value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">fontSize</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                  onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">v</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                    if</span><span style="color:#ADBAC7"> (v) </span><span style="color:#DCBDFB">setFontSize</span><span style="color:#ADBAC7">(v </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#ADBAC7">                  }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                  items</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">fontSizeLabels</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                  modal</span><span style="color:#F47067">={</span><span style="color:#6CB6FF">false</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                ></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Trigger</span></span>
+<span class="line"><span style="color:#6CB6FF">                    className</span><span style="color:#F47067">={</span><span style="color:#DCBDFB">cn</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#96D0FF">                      "inline-flex items-center justify-center gap-1 rounded-md border border-input bg-transparent shadow-xs"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">                      "hover:bg-muted cursor-pointer outline-none"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">                      "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#96D0FF">                      "h-7 min-w-7 px-1.5 text-xs"</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                    )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                  ></span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Value</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;</span><span style="color:#8DDB8C">ChevronDown</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"size-3 opacity-50"</span><span style="color:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Trigger</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Portal</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Positioner</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                      &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Popup</span><span style="color:#6CB6FF"> className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"z-[100] min-w-[var(--anchor-width)] rounded-xl border border-neutral-900 bg-background p-1 shadow-md"</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#F47067">                        {</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                          Object.</span><span style="color:#DCBDFB">keys</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                            fontSizeLabels,</span></span>
+<span class="line"><span style="color:#ADBAC7">                          ) </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">[]</span></span>
+<span class="line"><span style="color:#ADBAC7">                        ).</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">size</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                          &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.Item</span></span>
+<span class="line"><span style="color:#6CB6FF">                            key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                            value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                            className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"flex items-center justify-center rounded-md px-2 py-1 text-xs cursor-pointer hover:bg-muted data-[highlighted]:bg-muted outline-none"</span></span>
+<span class="line"><span style="color:#ADBAC7">                          ></span></span>
+<span class="line"><span style="color:#ADBAC7">                            &#x3C;</span><span style="color:#8DDB8C">SelectPrimitive.ItemText</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#F47067">                              {</span><span style="color:#ADBAC7">fontSizeLabels[size]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                            &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.ItemText</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                          &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Item</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                        ))</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                      &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Popup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Positioner</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Portal</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">SelectPrimitive.Root</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              ) </span><span style="color:#F47067">:</span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;</span><span style="color:#8DDB8C">ToggleGroup</span></span>
+<span class="line"><span style="color:#6CB6FF">                  variant</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"outline"</span></span>
+<span class="line"><span style="color:#6CB6FF">                  size</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"sm"</span></span>
+<span class="line"><span style="color:#6CB6FF">                  value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">[fontSize]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                  onValueChange</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">(</span><span style="color:#F69D50">values</span><span style="color:#F47067">:</span><span style="color:#6CB6FF"> string</span><span style="color:#ADBAC7">[]) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#F47067">                    if</span><span style="color:#ADBAC7"> (values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> ></span><span style="color:#6CB6FF"> 0</span><span style="color:#ADBAC7">) {</span></span>
+<span class="line"><span style="color:#DCBDFB">                      setFontSize</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                        values[values.</span><span style="color:#6CB6FF">length</span><span style="color:#F47067"> -</span><span style="color:#6CB6FF"> 1</span><span style="color:#ADBAC7">] </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#ADBAC7">                      );</span></span>
+<span class="line"><span style="color:#ADBAC7">                    }</span></span>
+<span class="line"><span style="color:#ADBAC7">                  }</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                ></span></span>
+<span class="line"><span style="color:#F47067">                  {</span><span style="color:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#ADBAC7">                    Object.</span><span style="color:#DCBDFB">keys</span><span style="color:#ADBAC7">(fontSizeLabels) </span><span style="color:#F47067">as</span><span style="color:#F69D50"> EditableHeadingFontSize</span><span style="color:#ADBAC7">[]</span></span>
+<span class="line"><span style="color:#ADBAC7">                  ).</span><span style="color:#DCBDFB">map</span><span style="color:#ADBAC7">((</span><span style="color:#F69D50">size</span><span style="color:#ADBAC7">) </span><span style="color:#F47067">=></span><span style="color:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;</span><span style="color:#8DDB8C">ToggleGroupItem</span></span>
+<span class="line"><span style="color:#6CB6FF">                      key</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                      value</span><span style="color:#F47067">={</span><span style="color:#ADBAC7">size</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                      aria-label</span><span style="color:#F47067">={</span><span style="color:#96D0FF">\`Font size \${</span><span style="color:#ADBAC7">fontSizeLabels</span><span style="color:#96D0FF">[</span><span style="color:#ADBAC7">size</span><span style="color:#96D0FF">]</span><span style="color:#96D0FF">}\`</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#6CB6FF">                      className</span><span style="color:#F47067">=</span><span style="color:#96D0FF">"min-w-8"</span></span>
+<span class="line"><span style="color:#ADBAC7">                    ></span></span>
+<span class="line"><span style="color:#F47067">                      {</span><span style="color:#ADBAC7">fontSizeLabels[size]</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                    &#x3C;/</span><span style="color:#8DDB8C">ToggleGroupItem</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">                  ))</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">                &#x3C;/</span><span style="color:#8DDB8C">ToggleGroup</span><span style="color:#ADBAC7">></span></span>
+<span class="line"><span style="color:#ADBAC7">              )</span><span style="color:#F47067">}</span></span>
+<span class="line"><span style="color:#ADBAC7">            &#x3C;/</span><span style="color:#8DDB8C">div</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">          &#x3C;/</span><span style="color:#8DDB8C">motion.div</span><span style="color:#ADBAC7">></span></span>
 <span class="line"><span style="color:#ADBAC7">        )</span><span style="color:#F47067">}</span></span>
 <span class="line"><span style="color:#ADBAC7">      &#x3C;/</span><span style="color:#8DDB8C">AnimatePresence</span><span style="color:#ADBAC7">></span></span>
