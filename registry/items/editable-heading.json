@@ -5,7 +5,7 @@
   "title": "Editable Heading",
   "description": "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
   "dependencies": ["motion", "lucide-react", "@base-ui/react"],
-  "registryDependencies": ["toggle-group"],
+  "registryDependencies": ["toggle-group", "use-mobile"],
   "categories": ["text"],
   "files": [
     {

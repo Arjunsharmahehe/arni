@@ -1,0 +1,13 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "use-mobile",
+  "type": "registry:hook",
+  "title": "Use Mobile",
+  "description": "A hook to detect if the device is mobile based on a breakpoint.",
+  "files": [
+    {
+      "path": "registry/base-vega/use-mobile/use-mobile.ts",
+      "type": "registry:hook"
+    }
+  ]
+}

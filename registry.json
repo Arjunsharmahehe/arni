@@ -204,7 +204,7 @@
       "title": "Editable Heading",
       "description": "An interactive heading styled as a text field that reveals a formatting toolbar on click. Supports bold, italic, underline, alignment, and font size controls. Inspired by Kree8's landing page design.",
       "dependencies": ["motion", "lucide-react", "@base-ui/react"],
-      "registryDependencies": ["toggle-group"],
+      "registryDependencies": ["toggle-group", "use-mobile"],
       "categories": ["text"],
       "files": [
         {
@@ -606,6 +606,20 @@
           "subComponents": []
         }
       }
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "use-mobile",
+      "type": "registry:hook",
+      "title": "Use Mobile",
+      "description": "A hook to detect if the device is mobile based on a breakpoint.",
+      "files": [
+        {
+          "path": "registry/base-vega/use-mobile/use-mobile.ts",
+          "type": "registry:hook"
+        }
+      ],
+      "registryDependencies": []
     }
   ]
 }
